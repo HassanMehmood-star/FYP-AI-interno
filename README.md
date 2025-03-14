@@ -68,8 +68,6 @@ We welcome contributions! If you're interested in improving AI-Interno, feel fre
 
 📧 Contact
 
-📩 Email: [Your Email]
-🔗 LinkedIn: [Your LinkedIn Profile]
-🚀 GitHub: [Your GitHub Profile]
+📩 Email: hm1152278@gmail.com
 
 💡 AI-Interno is built to redefine how students gain industry experience. Join us in revolutionizing virtual internships!
