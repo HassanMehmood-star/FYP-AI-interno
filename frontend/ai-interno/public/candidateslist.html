@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Candidates List</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    // Fetching the internshipId from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const internshipId = urlParams.get('internshipId');
+    
+    if (internshipId) {
+      // Fetch the applicants for the given internshipId
+      axios.get(`http://localhost:5000/api/internships/${internshipId}/applicants`)
+        .then((response) => {
+          const applicants = response.data.applicants;
+          const rootDiv = document.getElementById('root');
+          rootDiv.innerHTML = `
+            <h1>Applicants for Internship: ${internshipId}</h1>
+            ${applicants.map(applicant => `
+              <div>
+                <h3>${applicant.userId.name}</h3>
+                <p>${applicant.userId.email}</p>
+              </div>
+            `).join('')}
+          `;
+        })
+        .catch((error) => {
+          console.error('Error fetching applicants:', error);
+          document.getElementById('root').innerHTML = '<p>Error loading applicants.</p>';
+        });
+    } else {
+      document.getElementById('root').innerHTML = '<p>No internship selected.</p>';
+    }
+  </script>
+</body>
+</html>

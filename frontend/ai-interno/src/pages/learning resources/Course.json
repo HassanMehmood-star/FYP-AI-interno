@@ -1,0 +1,130 @@
+[
+  {
+    "id": 1,
+    "title": "Web Development",
+    "description": "Learn the basics of web development.",
+    "videos": [
+      {
+        "title": "HTML Basics",
+        "url": "https://www.youtube.com/watch?v=dD2EISBDjWM"
+      },
+      {
+        "title": "CSS Basics",
+        "url": "https://www.youtube.com/watch?v=yfoY53QXEnI"
+      },
+      {
+        "title": "JavaScript Essentials",
+        "url": "https://www.youtube.com/watch?v=W6NZfCO5SIk"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Data Science",
+    "description": "Get started with Data Science.",
+    "videos": [
+      {
+        "title": "Python for Data Science",
+        "url": "https://www.youtube.com/watch?v=_uQrJ0TkZlc"
+      },
+      {
+        "title": "Pandas Tutorial",
+        "url": "https://www.youtube.com/watch?v=vmEHCJofslg"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Machine Learning",
+    "description": "Introduction to Machine Learning concepts and applications.",
+    "videos": [
+      {
+        "title": "Machine Learning Basics",
+        "url": "https://www.youtube.com/watch?v=GwIo3gDZCVQ"
+      },
+      {
+        "title": "Supervised Learning",
+        "url": "https://www.youtube.com/watch?v=vn3tm0quoqE"
+      },
+      {
+        "title": "Unsupervised Learning",
+        "url": "https://www.youtube.com/watch?v=FHWO6eNnzyg"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Cloud Computing",
+    "description": "Learn about the fundamentals of cloud computing.",
+    "videos": [
+      {
+        "title": "Introduction to Cloud Computing",
+        "url": "https://www.youtube.com/watch?v=4Z9KEBexzcM"
+      },
+      {
+        "title": "AWS Basics",
+        "url": "https://www.youtube.com/watch?v=ulprqHHWlng"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Cybersecurity",
+    "description": "Basics of securing online systems.",
+    "videos": [
+      {
+        "title": "Introduction to Cybersecurity",
+        "url": "https://www.youtube.com/watch?v=KeuWJ47x34E"
+      },
+      {
+        "title": "Ethical Hacking Basics",
+        "url": "https://www.youtube.com/watch?v=F_DsOecYgrI"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Artificial Intelligence",
+    "description": "Learn the fundamentals of Artificial Intelligence.",
+    "videos": [
+      {
+        "title": "What is Artificial Intelligence?",
+        "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao"
+      },
+      {
+        "title": "AI vs Machine Learning",
+        "url": "https://www.youtube.com/watch?v=WXHM_i-fgGo"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Mobile App Development",
+    "description": "Learn how to create mobile applications.",
+    "videos": [
+      {
+        "title": "Introduction to Flutter",
+        "url": "https://www.youtube.com/watch?v=fq4N0hgOWzU"
+      },
+      {
+        "title": "Building Your First Android App",
+        "url": "https://www.youtube.com/watch?v=fis26HvvDII"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "title": "DevOps",
+    "description": "Learn about CI/CD and DevOps practices.",
+    "videos": [
+      {
+        "title": "DevOps Explained",
+        "url": "https://www.youtube.com/watch?v=x3RfuB2zDME"
+      },
+      {
+        "title": "Introduction to Jenkins",
+        "url": "https://www.youtube.com/watch?v=6YZvp2GwT0A"
+      }
+    ]
+  }
+]
