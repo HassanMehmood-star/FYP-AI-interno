@@ -27,6 +27,9 @@ const CompanyProfile = () => {
   const [numberOfEmployees, setNumberOfEmployees] = useState("");
   const [linkedin, setLinkedin] = useState("");
 
+  const [successMessage, setSuccessMessage] = useState('');
+
+
   const handleNextStep = () => {
     if (currentStep < 6) setCurrentStep(currentStep + 1);
   };
@@ -115,7 +118,7 @@ const CompanyProfile = () => {
       console.log("Server Response:", response.data); // Log server response
   
       if (response.status === 200) {
-        alert("Profile created successfully!");
+        setSuccessMessage('Details submitted successfully!');
         setProfileComplete(true); // Mark profile as complete after successful submission
       }
     } catch (error) {
@@ -193,8 +196,16 @@ const CompanyProfile = () => {
     );
   }
   return (
+
+
+
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+
+
+
       <div className="min-h-screen bg-gray-50 rounded-2xl">
+
+     
         
         {/* Progress Bar */}
         <div className="flex items-center justify-between gap-2 mb-6">
@@ -207,6 +218,12 @@ const CompanyProfile = () => {
             />
           ))}
         </div>
+
+        {successMessage && (
+  <div className="bg-green-500 text-white text-center py-2 rounded-3xl">
+    {successMessage}
+  </div>
+)}
         <p className="text-center text-gray-600 mb-6">Step {currentStep}/6</p>
 
         {/* Step 1: Company Introduction */}
