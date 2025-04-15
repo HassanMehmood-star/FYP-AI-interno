@@ -166,14 +166,14 @@ router.get('/get', authMiddleware, async (req, res) => {
 router.get("/profilee", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
-      console.error("❌ API Error - req.partner is undefined");
+      console.error("❌ API Error - req.user is undefined");
       return res.status(401).json({ message: "Unauthorized: No partner data found" });
     }
 
-    console.log("✅ API Request Received - User ID:", req.user.id);
+    console.log("✅ API Request Received - User ID:", req.user._id);  // Use _id from the partner
 
-    // Ensure `_id` is extracted correctly
-    const partnerId = req.user.id;
+    const partnerId = req.user._id;  // Corrected to use _id from req.user
+
     if (!partnerId) {
       console.error("❌ API Error - Partner ID is undefined");
       return res.status(401).json({ message: "Unauthorized: Partner ID missing" });
@@ -185,7 +185,7 @@ router.get("/profilee", authMiddleware, async (req, res) => {
 
     if (!partner) {
       console.error("❌ Industry partner not found for ID:", partnerId);
-      return res.status(404).json({ message: "Industry partner not found" });
+      return res.status(404).json({ message: "Data is not stored. Please update your profile." });
     }
 
     // Fetch additional details from IndustryPartnerDetail schema
@@ -194,7 +194,7 @@ router.get("/profilee", authMiddleware, async (req, res) => {
 
     if (!details) {
       console.error("❌ Profile details not found for Partner ID:", partnerId);
-      return res.status(404).json({ message: "Profile details not found" });
+      return res.status(404).json({ message: "Data is not stored. Please update your profile." });
     }
 
     // Merge and return full profile
@@ -205,12 +205,13 @@ router.get("/profilee", authMiddleware, async (req, res) => {
     };
 
     console.log("✅ Final Profile Data Sent to Frontend:", profileData);
-    res.json(profileData);
+    res.json(profileData);  // Send the profile data back to the frontend
   } catch (error) {
     console.error("❌ Server Error:", error.message);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
+
 
 router.post('/internships', authMiddleware, async (req, res) => {
   try {

@@ -4,42 +4,47 @@ import { Pencil } from "lucide-react";
 
 export default function ProfileReview() {
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true); // ✅ Loading state
-  const [error, setError] = useState(null); // ✅ Error state
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [noData, setNoData] = useState(false); // Flag for "No data stored"
 
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem("token");
+
       if (!token) {
         console.error("❌ No token found in localStorage");
         setError("No authentication token found. Please log in.");
         setLoading(false);
         return;
       }
-  
+
       try {
         console.log("✅ Fetching profile with token:", token);
+
         const response = await axios.get("http://localhost:5000/api/industry-partner/profilee", {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         console.log("✅ API Response from Backend:", response.data);
-        setProfile(response.data);
+
+        // Check if profile data is returned
+        if (response.data && Object.keys(response.data).length !== 0) {
+          setProfile(response.data);
+        } else {
+          setNoData(true); // If no data is found, set noData to true
+        }
       } catch (error) {
-        console.error("❌ Error fetching profile:", error.response?.data || error.message);
-        setError("Failed to fetch profile. Please try again.");
+        console.error("❌ Error fetching profile:", error.response ? error.response.data : error.message);
+        setError(error.response?.data?.message || "Failed to fetch profile. Please try again.");
       } finally {
-        setLoading(false); // ✅ Stop loading after API call
+        setLoading(false);
       }
     };
 
     fetchProfile();
   }, []);
-  
 
-
- 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -48,12 +53,21 @@ export default function ProfileReview() {
     );
   }
 
-  // ✅ Show error message if any
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto p-6 space-y-6 text-center text-red-600">
-        <h2 className="text-2xl font-semibold">Error</h2>
-        <p>{error}</p>
+      <div className="max-w-4xl mx-auto p-6 space-y-6 text-center text-gray-600">
+      <h2 className="text-2xl font-semibold">No Data Stored</h2>
+      <p>Your profile has not been created yet. Please update your profile to get started.</p>
+    </div>
+    );
+  }
+
+  // Show "No Data Stored" message if no profile data exists
+  if (noData) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 space-y-6 text-center text-gray-600">
+        <h2 className="text-2xl font-semibold">No Data Stored</h2>
+        <p>Your profile has not been created yet. Please update your profile to get started.</p>
       </div>
     );
   }
@@ -87,7 +101,7 @@ export default function ProfileReview() {
             </div>
             <div>
               <h3 className="font-semibold mb-1">Company Name</h3>
-              <p>{profile.name}</p>
+              <p>{profile.name || "Not Provided"}</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -120,23 +134,23 @@ export default function ProfileReview() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h3 className="font-semibold mb-1">Primary Work Arrangement</h3>
-            <p className="text-gray-500">{profile.workArrangement}</p>
+            <p className="text-gray-500">{profile.workArrangement || "Not Provided"}</p>
           </div>
           <div>
             <h3 className="font-semibold mb-1">Company Tools</h3>
-            <p className="text-gray-500">{profile.tools.join(", ")}</p>
+            <p className="text-gray-500">{profile.tools?.join(", ") || "Not Provided"}</p>
           </div>
           <div>
             <h3 className="font-semibold mb-1">Types Of Interns You Are Interested In</h3>
-            <p>{profile.selectedInterns.join(", ")}</p>
+            <p>{profile.selectedInterns?.join(", ") || "Not Provided"}</p>
           </div>
           <div>
             <h3 className="font-semibold mb-1">Company Email</h3>
-            <p className="text-gray-500">{profile.email}</p>
+            <p className="text-gray-500">{profile.email || "Not Provided"}</p>
           </div>
           <div>
             <h3 className="font-semibold mb-1">Workplace Model</h3>
-            <p>{profile.workArrangement}</p>
+            <p>{profile.workplaceModel || "Not Provided"}</p>
           </div>
         </div>
       </div>
