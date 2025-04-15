@@ -676,6 +676,9 @@ const checktest = require('./routes/checktest');
   const hireRejectRoute = require('./routes/hire_reject');
   app.use('/api', hireRejectRoute);
 
+  const userRoute = require('./routes/industrypartnerroute'); // Adjust to the correct path
+
+  app.use(userRoute); // Make sure this is added
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

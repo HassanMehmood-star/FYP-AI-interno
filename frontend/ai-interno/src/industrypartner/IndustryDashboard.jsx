@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft, MoreVertical } from "lucide-react";
+import axios from "axios";
 
 const IndustryDashboard = () => {
   const [activeTab, setActiveTab] = useState("suggestions");
   const [loading, setLoading] = useState(true); // ✅ Track loading state
+  const [userName, setUserName] = useState(""); // Dynamically set the user's name
 
   const categories = [
     "Business",
@@ -20,11 +22,44 @@ const IndustryDashboard = () => {
     "Finance",
   ];
 
+ 
+
+
   useEffect(() => {
     // Simulate data fetching (e.g., API request)
     setTimeout(() => {
       setLoading(false); // ✅ Set loading to false after 1.5s
     }, 1500);
+
+    // Fetch user data, assuming the API provides the user's name
+    const fetchUserData = async () => {
+      try {
+        // Retrieve the token from the 'user' key in localStorage
+        const user = JSON.parse(localStorage.getItem("user")); // Retrieve the 'user' object from localStorage
+        const token = user?.token; // Extract the token from the 'user' object
+
+        console.log("Token retrieved from localStorage:", token); // Log the token to check
+
+        if (!token) {
+          console.error("Token is missing");
+          return; // If token is missing, stop further execution
+        }
+
+        // Send token in Authorization header
+        const response = await axios.get("http://localhost:5000/api/user", {
+          headers: {
+            Authorization: `Bearer ${token}`, // Send token as Bearer token
+          },
+        });
+
+        setUserName(response.data.name); // Set the user's name
+        console.log("User Data:", response.data); // Log user data for debugging
+      } catch (error) {
+        console.error("Error fetching user data:", error.response ? error.response.data : error.message);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
   // ✅ Show loading spinner if still fetching
@@ -41,7 +76,9 @@ const IndustryDashboard = () => {
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
         <div className="flex items-center space-x-2">
-          <h1 className="text-3xl font-medium text-gray-800">Good morning, Hassan Mehmood</h1>
+          <h1 className="text-3xl font-medium text-gray-800">
+            Good morning, {userName || "Hassan Mehmood"} {/* Dynamically set name */}
+          </h1>
           <span className="text-3xl">👋</span>
         </div>
 

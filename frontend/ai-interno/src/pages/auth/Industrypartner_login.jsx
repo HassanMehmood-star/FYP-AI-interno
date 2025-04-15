@@ -59,6 +59,9 @@ const Industrypartner_login = () => {
       console.log('User Token:', data.token);
       console.log('User Name:', data.name);  // Log the user's name
   
+      console.log('Stored Token:', localStorage.getItem('userToken'));  // Verify token is stored
+        console.log('localStorage content:', localStorage);  
+        
       setMessage('Login successful!');
       setMessageType('success');
   
