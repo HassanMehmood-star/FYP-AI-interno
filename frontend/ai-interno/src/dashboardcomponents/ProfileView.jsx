@@ -58,10 +58,10 @@ const ProfileView = () => {
     fetchData();
   }, [loggedInUserId]); // Runs again if loggedInUserId changes
 
-  if (!userData || !userDetailsData) {
+  if (userData === null || userDetailsData === null) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <p className="text-lg font-semibold text-gray-500">User details are not stored.</p>
       </div>
     );
   }

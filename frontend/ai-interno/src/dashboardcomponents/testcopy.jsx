@@ -17,60 +17,141 @@ const TestSchedule = () => {
 
   useEffect(() => {
     const internshipId = localStorage.getItem("internshipId");
-    const testScheduleId = localStorage.getItem("testScheduleId");
-  
     console.log("🟢 Internship ID on mount:", internshipId);
-    console.log("🟢 Test Schedule ID on mount:", testScheduleId);
-  
-    if (!internshipId || !testScheduleId) {
-      console.error("❌ Internship ID or Test Schedule ID not found");
-      setError("Please ensure both Internship ID and Test Schedule ID are available.");
-      return;
+    if (internshipId) {
+      fetchTestDetails();
+    } else {
+      console.log("❌ Internship ID not found");
     }
-  
-    // Proceed with fetching or other logic using internshipId and testScheduleId
-    fetchTestDetails(internshipId, testScheduleId);
   }, []);
   
-
-  const fetchTestDetails = async (internshipId, testScheduleId) => {
-    console.log("🔍 [fetchTestDetails] Starting execution...");
   
+  
+
+  const fetchTestDetails = async () => {
+    console.log("🔍 [fetchTestDetails] Starting execution...");
     try {
       const token = localStorage.getItem("token");
-      if (!token || !internshipId || !testScheduleId) {
-        throw new Error("❌ No token, internshipId, or testScheduleId found!");
-      }
+    const internshipId = localStorage.getItem("internshipId"); // Get internshipId from localStorage
+    console.log("🛑 Token:", token);
+    console.log("🛑 Internship ID:", internshipId);
+    if (!token || !internshipId) {
+      throw new Error("❌ No token or internshipId found!");
+    }
+
+    const response = await fetch(`/api/test-schedule/details?internshipId=${internshipId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    console.log("📋 [fetchTestDetails] Response data:", data);
+
+    // Update the internshipId in localStorage to the correct value after fetching
+    localStorage.setItem('internshipId', data.internshipId); // This ensures the latest internshipId is saved
+
+    // Now, data.internshipId contains the most recent internshipId, which will be used for submission
+    console.log("Stored Internship ID in localStorage:", data.internshipId);
   
-      const response = await fetch(`/api/test-schedule/details?internshipId=${internshipId}&testScheduleId=${testScheduleId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+     
   
-      const data = await response.json();
-      console.log("📋 [fetchTestDetails] Response data:", data);
+      
   
       if (!response.ok) {
         throw new Error(`❌ API Error: ${data.message || "Unknown error"}`);
       }
   
-      // Use data as needed
+      // Check if test is already scheduled
+      if (data.isScheduled) {
+        console.log("✅ [fetchTestDetails] Test is already scheduled!");
+        setSubmitted(true); // Set the submitted state to true
+        setLoading(false); // Stop loading state
+        setError("Test is already scheduled, please wait for the result.");
+        return; // Exit the function early to prevent further logic
+      }
+  
+      // Proceed with other logic if the test is not scheduled
       setUserData({ name: data.name, email: data.email });
       setTestFile(data.testFile);
-      setTotalTime(data.durationInSeconds || 3600);
-      setLoading(false);
+      console.log("👤 [fetchTestDetails] User data:", { name: data.name, email: data.email });
+      console.log("📄 [fetchTestDetails] Test file:", data.testFile);
+
+      // Save industryPartnerId if present in the API response
+      if (data.industryPartnerId) {
+        localStorage.setItem("industryPartnerId", data.industryPartnerId);
+      }
+      console.log("📋 [fetchTestDetails] Industry Partner ID stored:", data.industryPartnerId);
   
+      const now = new Date();
+      const testDateTime = new Date(data.testDate);
+      let hours = 0, minutes = 0;
+      if (data.testTime) {
+        [hours, minutes] = data.testTime.split(":").map(Number);
+      } else {
+        console.warn("⚠️ [fetchTestDetails] testTime is null, defaulting to 00:00");
+      }
+      testDateTime.setHours(hours, minutes, 0, 0);
+  
+      const nowUtc = new Date(now.toISOString());
+      const testDuration = data.durationInSeconds || 3600;
+      setTotalTime(testDuration);
+  
+      console.log("⏰ [fetchTestDetails] Current time (UTC):", nowUtc);
+      console.log("🕒 [fetchTestDetails] Test start time:", testDateTime);
+      console.log("⏳ [fetchTestDetails] Test duration (seconds):", testDuration);
+  
+      if (nowUtc >= testDateTime) {
+        console.log("✅ [fetchTestDetails] Test has started or is ongoing...");
+        const storedInternshipId = localStorage.getItem("internshipId");
+        let initialTimeLeft = testDuration;
+  
+        if (!storedInternshipId || storedInternshipId !== internshipId) {
+          console.log("🆕 [fetchTestDetails] New session detected, setting full duration");
+          initialTimeLeft = testDuration;
+          localStorage.setItem("timeLeft", testDuration);
+          localStorage.setItem("startTime", Date.now());
+          localStorage.setItem("internshipId", internshipId);
+          localStorage.setItem("userId", data.userId || "temp-user-id");
+        } else {
+          const startTime = Number(localStorage.getItem("startTime"));
+          const elapsedSinceStart = Math.floor((Date.now() - startTime) / 1000);
+  
+          console.log("🕒 [fetchTestDetails] Stored startTime:", startTime);
+          console.log("⏱️ [fetchTestDetails] Elapsed since start (seconds):", elapsedSinceStart);
+  
+          if (isNaN(startTime) || elapsedSinceStart < 0 || elapsedSinceStart > testDuration) {
+            console.log("⚠️ [fetchTestDetails] Invalid startTime or elapsed time, resetting...");
+            initialTimeLeft = testDuration;
+            localStorage.setItem("timeLeft", testDuration);
+            localStorage.setItem("startTime", Date.now());
+          } else {
+            initialTimeLeft = Math.max(testDuration - elapsedSinceStart, 0);
+            console.log("⏲️ [fetchTestDetails] Calculated remaining time:", initialTimeLeft);
+            localStorage.setItem("timeLeft", initialTimeLeft);
+          }
+        }
+  
+        console.log("⏳ [fetchTestDetails] Initial time left set to:", initialTimeLeft);
+        setTimeLeft(initialTimeLeft);
+        setTestStarted(true);
+        console.log("🚀 [fetchTestDetails] Test started!");
+      } else {
+        const errorMsg = `⏳ Test has not yet started. It will start at ${testDateTime.toLocaleString()}`;
+        console.log("⏳ [fetchTestDetails] ", errorMsg);
+        setError(errorMsg);
+      }
+  
+      console.log("🏁 [fetchTestDetails] Completed successfully");
+      setLoading(false);
     } catch (err) {
       console.error("🚨 [fetchTestDetails] Error:", err.message);
       setError(err.message);
       setLoading(false);
     }
   };
-  
-  
 
   useEffect(() => {
     if (!testStarted || submitted || timeLeft <= 0) {
@@ -120,66 +201,71 @@ const TestSchedule = () => {
     }
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (!solutionFile) {
-    alert("❌ Please upload your solution first");
-    return;
-  }
-
-  // Retrieve the latest internshipId from localStorage
-  const internshipId = localStorage.getItem("internshipId");
-  const userId = localStorage.getItem("userId");
-  const industryPartnerId = localStorage.getItem("industryPartnerId");
-
-  console.log("Internship ID from localStorage:", internshipId);  // Log to ensure it's the correct ID
-  console.log("User ID from localStorage:", userId);
-  console.log("Industry Partner ID from localStorage:", industryPartnerId);
-
-  if (!internshipId || !userId || !industryPartnerId) {
-    alert("❌ Missing internshipId, userId, or industryPartnerId. Please log in again.");
-    return;
-  }
-
-  const token = localStorage.getItem("token");  // Retrieve the token from localStorage
-  if (!token) {
-    alert("❌ No token found. Please log in again.");
-    return; // Exit if token is missing
-  }
-
-  const formData = new FormData();
-  formData.append("solution", solutionFile);  // Append the solution file to FormData
-  formData.append("userId", userId);
-  formData.append("internshipId", internshipId);  // Use the internshipId from localStorage
-  formData.append("industryPartnerId", industryPartnerId);
-
-  console.log("FormData being sent:", formData);  // Log FormData to ensure everything is correct
-
-  try {
-    const response = await fetch("http://localhost:5000/api/test-schedule/submit", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    const data = await response.json();
-    console.log("API Response:", data);  // Log the response from the server
-
-    if (!response.ok) {
-      throw new Error(data.message || "Unknown error while submitting");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+  
+    // Retrieve userId from localStorage
+    const userId = localStorage.getItem("userId");
+    console.log("User ID from localStorage before submit:", userId);  // Debugging line
+  
+    if (!solutionFile) {
+      alert("❌ Please upload your solution first");
+      return;
     }
-
-    setSubmitted(true);
-    setSubmitting(false);
-    alert("✅ Solution submitted successfully");
-  } catch (err) {
-    setSubmitting(false);
-    alert(`❌ Error: ${err.message}`);
-  }
-};
+  
+    // Retrieve other data from localStorage
+    const internshipId = localStorage.getItem("internshipId");
+    const industryPartnerId = localStorage.getItem("industryPartnerId");
+  
+    console.log("Internship ID from localStorage:", internshipId);
+    console.log("Industry Partner ID from localStorage:", industryPartnerId);
+  
+    // Check if essential data is available
+    if (!internshipId || !userId || !industryPartnerId) {
+      alert("❌ Missing internshipId, userId, or industryPartnerId. Please log in again.");
+      return;
+    }
+  
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("❌ No token found. Please log in again.");
+      return;
+    }
+  
+    const formData = new FormData();
+    formData.append("solution", solutionFile);
+    formData.append("userId", userId);  // Debugging line: Ensure userId is appended
+    formData.append("internshipId", internshipId);
+    formData.append("industryPartnerId", industryPartnerId);
+  
+    console.log("FormData being sent:", formData);  // Log the FormData to verify it's correct
+  
+    try {
+      const response = await fetch("http://localhost:5000/api/test-schedule/submit", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+  
+      const data = await response.json();
+      console.log("API Response:", data);  // Log the API response to verify the submission
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Unknown error while submitting");
+      }
+  
+      setSubmitted(true);
+      setSubmitting(false);
+      alert("✅ Solution submitted successfully");
+    } catch (err) {
+      setSubmitting(false);
+      alert(`❌ Error: ${err.message}`);
+    }
+  };
+  
+  
 
 
   
