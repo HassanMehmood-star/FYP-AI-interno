@@ -120,7 +120,7 @@ const FindInternship = () => {
     {/* Internship Details */}
     <div className="flex justify-between items-center mb-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 hover:text-green-700 transition duration-200">{userData.title}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 hover:text-green-700 transition duration-200">{userData.title}</h1>
         <div className="flex items-center gap-2 text-gray-500 mt-2">
           <span className="flex items-center text-sm">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
