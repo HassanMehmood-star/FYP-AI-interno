@@ -217,7 +217,12 @@ router.post('/internships', authMiddleware, async (req, res) => {
   try {
     const industryPartnerId = req.user.id; // Ensure this is being extracted properly
 
-    const { title, department, careerField, skillInternWillLearn, roleDescription } = req.body;
+    const { title, department, careerField, skillInternWillLearn, roleDescription, level } = req.body;
+
+    // Validate level before proceeding (optional)
+    if (!['beginner', 'intermediate', 'advanced'].includes(level)) {
+      return res.status(400).json({ error: 'Invalid level. It must be one of "beginner", "intermediate", or "advanced".' });
+    }
 
     // Create new internship
     const newInternship = new Internship({
@@ -226,6 +231,7 @@ router.post('/internships', authMiddleware, async (req, res) => {
       careerField,
       skillInternWillLearn,
       roleDescription,
+      level, // Include the level field in the internship
       createdBy: industryPartnerId, // Associate internship with industry partner
     });
 
@@ -236,6 +242,7 @@ router.post('/internships', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Failed to create internship' });
   }
 });
+
 
 
 // Route to get internships by IndustryPartner ID

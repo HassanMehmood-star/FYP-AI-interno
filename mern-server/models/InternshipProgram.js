@@ -14,7 +14,7 @@ const InternshipSchema = new mongoose.Schema({
     required: true,
   },
   skillInternWillLearn: {
-    type: [String], // Changed to an array of strings
+    type: [String], // Array of strings to store skills
     required: true,
     validate: {
       validator: function (v) {
@@ -31,6 +31,11 @@ const InternshipSchema = new mongoose.Schema({
     type: String,
     enum: ['Active', 'Inactive'],
     default: 'Active',
+  },
+  level: {
+    type: String,
+    enum: ['beginner', 'intermediate', 'advanced'], // Added level field with validation
+    required: true,
   },
   createdAt: {
     type: Date,

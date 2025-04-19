@@ -13,8 +13,10 @@ export default function InternshipRequirements() {
     title: "",
     department: "",
     careerField: "",
-    skills: ["", "", ""], // Changed to an array with 3 empty skills
+    skills: ["", "", ""], // Initially 3 empty skills
+    // To store selected internship level
     roleDescription: "",
+    level: "", // Added level field
   });
   const [activeRequirement, setActiveRequirement] = useState(null);
 
@@ -74,9 +76,10 @@ export default function InternshipRequirements() {
       !formData.department ||
       !formData.careerField ||
       filledSkills.length < 3 || // Ensure at least 3 skills
-      !formData.roleDescription
+      !formData.roleDescription ||
+      !formData.level // Ensure a level is selected
     ) {
-      alert("Please fill all required fields, including at least 3 skills.");
+      alert("Please fill all required fields, including at least 3 skills and the internship level.");
       return;
     }
   
@@ -161,7 +164,7 @@ export default function InternshipRequirements() {
     "C++",
     "C#",
     "ReactNative"
-];
+  ];
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white relative">
@@ -440,6 +443,12 @@ export default function InternshipRequirements() {
                 </button>
               </div>
 
+
+
+              
+
+
+
               <div>
                 <label htmlFor="roleDescription" className="block text-xs font-medium text-gray-700 mb-1">
                   Role description <span className="text-red-500">*</span>
@@ -457,7 +466,34 @@ export default function InternshipRequirements() {
                 </p>
               </div>
             </div>
+
+            <div>
+  <label htmlFor="level" className="block text-xs font-medium text-gray-700 mb-1">
+    Level <span className="text-red-500">*</span>
+  </label>
+  <div className="relative">
+    <select
+      id="level"
+      value={formData.level}
+      onChange={handleInputChange}
+      className="w-full p-2 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-gray-200 text-sm"
+    >
+      <option value="" disabled>Select Level</option>
+      <option value="beginner">Beginner</option>
+      <option value="intermediate">Intermediate</option>
+      <option value="advanced">Advanced</option>
+    </select>
+    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+      <ChevronDown className="h-4 w-4 text-gray-500" />
+    </div>
+  </div>
+</div>
+
+
           </div>
+
+
+          
 
           <div className="p-4 border-t flex justify-end space-x-4">
             <button
