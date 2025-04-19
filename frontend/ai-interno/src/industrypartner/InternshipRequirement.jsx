@@ -6,6 +6,8 @@ import { Trash } from "lucide-react"; // Add this import statement for the Trash
 
 export default function InternshipRequirements() {
   const [applicants, setApplicants] = useState([]);  
+  const [filteredRequirements, setFilteredRequirements] = useState([]); 
+  const [searchQuery, setSearchQuery] = useState(""); 
   const [successMessage, setSuccessMessage] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [requirements, setRequirements] = useState([]);
@@ -66,6 +68,14 @@ export default function InternshipRequirements() {
     };
     fetchInternships();
   }, []);
+
+
+  useEffect(() => {
+    const filtered = requirements.filter((req) =>
+      req.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredRequirements(filtered);
+  }, [searchQuery, requirements]);
 
   const handleManageCandidates = (internshipId) => {
     navigate(`/industrtypartnerdashboard/CandidatesList?internshipId=${internshipId}`);
@@ -224,51 +234,21 @@ export default function InternshipRequirements() {
               id="search"
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200"
               placeholder="Search internship by name"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)} // Update search query state
             />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap border border-gray-200 rounded-lg">
-        <div className="flex-1 min-w-[120px] border-r border-gray-200">
-          <button className="w-full h-full px-3 py-2 text-left flex items-center justify-between text-sm">
-            <span className="text-gray-700">Department</span>
-            <ChevronDown className="h-3 w-3 text-gray-500" />
-          </button>
-        </div>
-        <div className="flex-1 min-w-[120px] border-r border-gray-200">
-          <button className="w-full h-full px-3 py-2 text-left flex items-center justify-between text-sm">
-            <span className="text-gray-700">Career fields</span>
-            <ChevronDown className="h-3 w-3 text-gray-500" />
-          </button>
-        </div>
-        <div className="flex-1 min-w-[150px] border-r border-gray-200">
-          <button className="w-full h-full px-3 py-2 text-left flex items-center justify-between text-sm">
-            <span className="text-gray-700">Preferred start months</span>
-            <ChevronDown className="h-3 w-3 text-gray-500" />
-          </button>
-        </div>
-        <div className="flex-1 min-w-[120px] border-r border-gray-200">
-          <button className="w-full h-full px-3 py-2 text-left flex items-center justify-between text-sm">
-            <span className="text-gray-700">Created by</span>
-            <ChevronDown className="h-3 w-3 text-gray-500" />
-          </button>
-        </div>
-        <div className="flex-1 min-w-[120px]">
-          <button className="w-full h-full px-3 py-2 text-left flex items-center justify-between text-sm">
-            <span className="text-gray-700">Status</span>
-            <ChevronDown className="h-3 w-3 text-gray-500" />
-          </button>
-        </div>
-      </div>
+     
 
-      {requirements.length > 0 && (
+      {filteredRequirements.length > 0 ? (
         <div className="mt-6 space-y-6">
-          {requirements.map((req) => (
+          {filteredRequirements.map((req) => (
             <div
               key={req._id}
               className={`border rounded-lg overflow-hidden ${activeRequirement === req._id ? "border-black" : "border-gray-200"}`}
-              onClick={() => selectRequirement(req._id)}
             >
               <div className="p-4">
                 <div className="flex justify-between items-start mb-4">
@@ -349,6 +329,8 @@ export default function InternshipRequirements() {
             </div>
           ))}
         </div>
+      ) : (
+        <div className="mt-6 text-gray-500">No internships found.</div>
       )}
 
 
