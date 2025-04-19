@@ -243,6 +243,24 @@ router.post('/internships', authMiddleware, async (req, res) => {
   }
 });
 
+// Assuming you are using Express and Mongoose
+router.delete('/internships/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const internship = await Internship.findById(id);
+
+    if (!internship) {
+      return res.status(404).json({ error: 'Internship not found' });
+    }
+
+    // Delete the internship
+    await Internship.deleteOne({ _id: id });
+    res.status(200).json({ message: 'Internship deleted successfully' });
+  } catch (err) {
+    console.error("Failed to delete internship:", err);
+    res.status(500).json({ error: 'Failed to delete internship' });
+  }
+});
 
 
 // Route to get internships by IndustryPartner ID

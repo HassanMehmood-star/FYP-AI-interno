@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Plus, X, Info, Users, Calendar, Briefcase, CheckCircle } from "lucide-react";
+import { Trash } from "lucide-react"; // Add this import statement for the Trash icon
 
 export default function InternshipRequirements() {
   const [applicants, setApplicants] = useState([]);  
@@ -166,6 +167,26 @@ export default function InternshipRequirements() {
     "ReactNative"
   ];
 
+
+  const handleDeleteInternship = async (internshipId) => {
+    try {
+      const response = await axios.delete(`/api/industry-partner/internships/${internshipId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      // Check the response status and remove the deleted internship from local state
+      if (response.status === 200) {
+        setRequirements((prevRequirements) => prevRequirements.filter((req) => req._id !== internshipId));
+        alert('Internship deleted successfully');
+      }
+    } catch (err) {
+      console.error("Failed to delete internship:", err);
+      alert("Failed to delete internship.");
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white relative">
       <div className="flex justify-between items-start mb-6">
@@ -256,6 +277,25 @@ export default function InternshipRequirements() {
                   </div>
                 </div>
 
+                {/* Trash Icon */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent triggering the selectRequirement function
+                      handleDeleteInternship(req._id); // Call the delete function
+                    }}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash className="w-5 h-5" /> {/* Trash Icon */}
+                  </button>
+                </div>
+
+                {/* Display Level */}
+                <div className="mt-2 text-sm text-gray-600">
+                  <strong>Level: </strong>
+                  <span>{req.level}</span>
+                </div>
+
                 <div className="flex flex-wrap gap-4 mt-4">
                   <div className="bg-pink-50 rounded-lg p-4 flex-1 min-w-[120px]">
                     <p className="text-3xl font-bold text-pink-500">{req.stats?.interested || 0}</p>
@@ -300,6 +340,10 @@ export default function InternshipRequirements() {
           ))}
         </div>
       )}
+
+
+
+
 
       {/* Slide-in Form Panel */}
       <div
