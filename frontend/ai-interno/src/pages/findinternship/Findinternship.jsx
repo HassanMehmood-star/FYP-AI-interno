@@ -2,94 +2,93 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Search, ChevronDown, Calendar, Users } from "lucide-react";
 
-
 const FindInternship = () => {
   const [internshipData, setInternshipData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null); 
   const [searchQuery, setSearchQuery] = useState("");  // Initialize user state
   const [filteredInternships, setFilteredInternships] = useState([]);
+  const [successMessage, setSuccessMessage] = useState(""); // State for success message
+
   useEffect(() => {
     // Fetch user data from localStorage when the component loads
     const storedUser = localStorage.getItem('user');
-    console.log('Stored user:', storedUser); // Debugging log to verify what's in localStorage
     if (storedUser) {
       setUser(JSON.parse(storedUser));  // Set user data from localStorage
     }
 
-    // Fetch internship data
-  
-      const fetchInternships = async () => {
-        try {
-          const response = await axios.get('http://localhost:5000/api/internships');
-          console.log("Fetched internships:", response.data); // Check if `createdBy` exists
-          setInternshipData(response.data);
-        } catch (err) {
-          console.error("Error fetching internship data:", err);
-        } finally {
-          setLoading(false);
-        }
-      };
-    
-      fetchInternships();
-    }, []);
-
-    useEffect(() => {
-      const filtered = internshipData.filter((internship) =>
-        internship.title.toLowerCase().includes(searchQuery.toLowerCase()) // Case-insensitive search
-      );
-      setFilteredInternships(filtered);
-    }, [searchQuery, internshipData]);
-     // Run only on initial render
-
-     const applyToInternship = async (internshipId, industryPartnerName) => {
-      if (!user) {
-        alert('Please log in to apply');
-        return;
-      }
-    
-      // Log the user object to verify it contains the necessary fields
-      console.log("Applying with user:", user);
-      
-      // Check if user object contains required fields
-      if (!user.name || !user.userId) {
-        alert('User data is incomplete.');
-        return;
-      }
-    
+    const fetchInternships = async () => {
       try {
-        const applicationData = {
-          userName: user.name,  // Get user name from the stored user
-          userId: user.userId,  // Get userId from stored user
-          internshipProgramId: internshipId,
-          industryPartnerName: industryPartnerName,  // Ensure industryPartnerName is passed correctly
-        };
-    
-        // Debugging: Log the application data before sending it
-        console.log("Application data being sent:", applicationData);
-    
-        const response = await axios.post('http://localhost:5000/api/apply', applicationData);
-    
-        // Check the response data
-        console.log("Response from backend:", response.data);
-    
-        if (response.data.success) {
-          alert('Application submitted successfully!');
-        } else {
-          alert(response.data.message);  // Display error message from backend
-        }
+        const response = await axios.get('http://localhost:5000/api/internships');
+        setInternshipData(response.data);
+        setFilteredInternships(response.data); // Initially, display all internships
       } catch (err) {
-        // Catch and log any errors that occur during the API request
-        console.error("Error applying to internship:", err);
-        alert('An error occurred while applying. Please try again later.');
+        console.error("Error fetching internship data:", err);
+      } finally {
+        setLoading(false);
       }
     };
-    
-    
-  
+
+    fetchInternships();
+  }, []);
+
+  useEffect(() => {
+    const filtered = internshipData.filter((internship) =>
+      internship.title.toLowerCase().includes(searchQuery.toLowerCase()) // Case-insensitive search
+    );
+    setFilteredInternships(filtered);
+  }, [searchQuery, internshipData]);
+
+  const applyToInternship = async (internshipId, industryPartnerName) => {
+    if (!user) {
+      alert('Please log in to apply');
+      return;
+    }
+
+    if (!user.name || !user.userId) {
+      alert('User data is incomplete.');
+      return;
+    }
+
+    try {
+      const applicationData = {
+        userName: user.name,  // Get user name from the stored user
+        userId: user.userId,  // Get userId from stored user
+        internshipProgramId: internshipId,
+        industryPartnerName: industryPartnerName,  // Ensure industryPartnerName is passed correctly
+      };
+
+      const response = await axios.post('http://localhost:5000/api/apply', applicationData);
+
+      if (response.data.success) {
+        setSuccessMessage("Application submitted successfully!");
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 3000);
+      } else {
+        alert(response.data.message);  // Display error message from backend
+      }
+    } catch (err) {
+      console.error("Error applying to internship:", err);
+      alert('An error occurred while applying. Please try again later.');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white relative">
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-100 text-green-800 p-4 mb-4 rounded-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          {successMessage}
+        </div>
+      )}
 
+      {/* Header Section */}
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-3xl font-bold text-black">Internship Requirements</h1>
@@ -97,6 +96,7 @@ const FindInternship = () => {
         </div>
       </div>
 
+      {/* Search Box */}
       <div className="mb-6">
         <div className="relative">
           <label htmlFor="search" className="text-sm text-gray-500 mb-1 block">
@@ -118,15 +118,13 @@ const FindInternship = () => {
         </div>
       </div>
 
-     
-
       {/* Display internships or "No internships at this time" message */}
       {internshipData.length === 0 && !loading && (
         <p className="text-center text-lg text-gray-500 py-4">No internships at this time</p>
       )}
 
- {/* Render internships */}
- {filteredInternships.length > 0 ? (
+      {/* Render internships */}
+      {filteredInternships.length > 0 ? (
         <div className="space-y-6">
           {filteredInternships.map((internship) => (
             <div key={internship._id} className="max-w-5xl mx-auto p-6 bg-white rounded-lg shadow-sm mt-4 border border-gray-100">
@@ -182,15 +180,14 @@ const FindInternship = () => {
                 </div>
 
                 <button
-  onClick={() => applyToInternship(internship._id, internship.createdBy ? internship.createdBy.name : "Unknown")}
-  className="flex items-center text-white bg-gradient-to-r from-green-400 to-blue-500 hover:from-blue-500 hover:to-green-400 text-sm py-3 px-6 border rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg hover:shadow-xl"
->
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 transform group-hover:scale-110 transition duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-  Apply Here
-</button>
-
+                  onClick={() => applyToInternship(internship._id, internship.createdBy ? internship.createdBy.name : "Unknown")}
+                  className="flex items-center text-white bg-gradient-to-r from-green-400 to-blue-500 hover:from-blue-500 hover:to-green-400 text-sm py-3 px-6 border rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg hover:shadow-xl"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 transform group-hover:scale-110 transition duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Apply Here
+                </button>
               </div>
             </div>
           ))}
@@ -198,9 +195,6 @@ const FindInternship = () => {
       ) : (
         <div className="mt-6 text-gray-500">No internships found.</div>
       )}
-
-
-
     </div>
   );
 };
