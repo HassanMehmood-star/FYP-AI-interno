@@ -6,6 +6,7 @@ import { Trash } from "lucide-react"; // Add this import statement for the Trash
 
 export default function InternshipRequirements() {
   const [applicants, setApplicants] = useState([]);  
+  const [successMessage, setSuccessMessage] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [requirements, setRequirements] = useState([]);
   const [isCandidatesPageOpen, setIsCandidatesPageOpen] = useState(false);
@@ -179,7 +180,7 @@ export default function InternshipRequirements() {
       // Check the response status and remove the deleted internship from local state
       if (response.status === 200) {
         setRequirements((prevRequirements) => prevRequirements.filter((req) => req._id !== internshipId));
-        alert('Internship deleted successfully');
+        setSuccessMessage("Internship deleted successfully!");
       }
     } catch (err) {
       console.error("Failed to delete internship:", err);
@@ -189,6 +190,15 @@ export default function InternshipRequirements() {
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white relative">
+
+{/* Success Message */}
+{successMessage && (
+        <div className="bg-green-100 text-green-800 p-4 mb-4 rounded-md">
+          <CheckCircle className="inline w-4 h-4 mr-2" />
+          {successMessage}
+        </div>
+      )}
+
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-3xl font-bold text-black">Internship Requirements</h1>
