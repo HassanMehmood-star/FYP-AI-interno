@@ -9,10 +9,14 @@ router.get('/internships/:internshipId/applicants', async (req, res) => {
   console.log('Fetching applicants for internship ID:', internshipId);
 
   try {
+    // Query to fetch applicants based on internshipId
     const applicants = await Application.find({ internshipProgramId: internshipId })
       .populate('userId', 'name email');  // Populate the userId field with name and email fields
 
+    console.log('Fetched applicants:', applicants); // Log the raw applicants data
+
     if (!applicants || applicants.length === 0) {
+      console.log('No applicants found for internship ID:', internshipId);
       return res.status(404).json({ success: false, message: 'No applicants found' });
     }
 
@@ -24,17 +28,18 @@ router.get('/internships/:internshipId/applicants', async (req, res) => {
       email: applicant.userId.email
     }));
 
-    console.log('Applicant Details:', applicantDetails);
+    console.log('Applicant Details:', applicantDetails); // Log the transformed applicant details
 
     res.status(200).json({
       success: true,
       applicants: applicantDetails,  // Return the modified applicant list
     });
   } catch (error) {
-    console.error('Error fetching applicants:', error);
+    console.error('Error fetching applicants:', error); // Log any error
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 
   // Adjust path if needed

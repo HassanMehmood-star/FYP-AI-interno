@@ -7,7 +7,7 @@ export default function CandidatesList() {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userCount, setUserCount] = useState(0);
-  const [selectedCandidates, setSelectedCandidates] = useState([]);
+  const [selectedCandidates, setSelectedCandidates] = useState([]); // Initialize as empty array
   const location = useLocation();
   const navigate = useNavigate();
   const internshipId = new URLSearchParams(location.search).get('internshipId');
@@ -18,15 +18,9 @@ export default function CandidatesList() {
         try {
           setLoading(true);
           const response = await axios.get(`http://localhost:5000/api/internships/${internshipId}/applicants`);
-          console.log("Total data", response.data);
-
-          if (response.data.success && Array.isArray(response.data.applicants)) {
-            setCandidates(response.data.applicants);
-            setUserCount(response.data.applicants.length);
-            setSelectedCandidates(response.data.applicants.map((candidate) => candidate.applicationId)); // Select all by default
-          } else {
-            console.error('Unexpected response format:', response.data);
-          }
+          setCandidates(response.data.applicants);
+          setUserCount(response.data.applicants.length);
+          setSelectedCandidates([]); // Ensure no candidates are selected by default
         } catch (err) {
           console.error('Error fetching applicants:', err);
         } finally {
@@ -42,40 +36,38 @@ export default function CandidatesList() {
     setSelectedCandidates((prev) => {
       const isSelected = prev.includes(candidate.applicationId);
       if (isSelected) {
-        return prev.filter(id => id !== candidate.applicationId);
+        return prev.filter(id => id !== candidate.applicationId); // Remove from selected
       } else {
-        return [...prev, candidate.applicationId];
+        return [...prev, candidate.applicationId]; // Add to selected
       }
     });
   };
 
   const handleSelectAllChange = () => {
     if (selectedCandidates.length === candidates.length) {
-      setSelectedCandidates([]);
+      setSelectedCandidates([]); // Deselect all if all are selected
     } else {
-      setSelectedCandidates(candidates.map((candidate) => candidate.applicationId));
+      setSelectedCandidates(candidates.map((candidate) => candidate.applicationId)); // Select all
     }
   };
 
   const handleViewProfile = (userId) => {
+    console.log('View Profile clicked for userId:', userId);
     navigate(`/industrtypartnerdashboard/ViewProfile/${userId}`);
-  };
-
-  const handleBackToInternship = () => {
-    navigate('/industrtypartnerdashboard/InternshipRequirement');
   };
 
   const handleScheduleTest = () => {
     const selectedCandidatesData = candidates.filter(candidate =>
       selectedCandidates.includes(candidate.applicationId)
     );
-    // Include the internshipId in the state when navigating to ScheduleTest
     navigate(`/industrtypartnerdashboard/ScheduleTest/${internshipId}`, {
       state: { selectedCandidates: selectedCandidatesData, internshipId }
     });
   };
-  
-  
+
+  const handleBackToInternship = () => {
+    navigate('/industrtypartnerdashboard/InternshipRequirement');
+  };
 
   return (
     <div className="w-full min-h-screen bg-gray-50">
@@ -125,45 +117,43 @@ export default function CandidatesList() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {candidates.length > 0 ? (
-                candidates.map((candidate) => (
-                  <tr key={candidate.applicationId}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                        onChange={() => handleCheckboxChange(candidate)} 
-                        checked={selectedCandidates.includes(candidate.applicationId)} 
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{candidate.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{candidate.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 flex">
-                      <button className="text-teal-600 hover:text-indigo-900 flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        Schedule Test
-                      </button>
-                      <button
-                        onClick={() => handleViewProfile(candidate.userId?._id)} 
-                        className="text-gray-600 hover:text-gray-900 flex items-center"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Profile
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
-                    No applicants yet.
-                  </td>
-                </tr>
-              )}
+            {candidates.length > 0 ? (
+  candidates.map((candidate) => (
+    <tr key={candidate.applicationId}>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <input
+          type="checkbox"
+          className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+          onChange={() => handleCheckboxChange(candidate)} 
+          checked={selectedCandidates.includes(candidate.applicationId)} 
+        />
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm font-medium text-gray-900">{candidate.name}</div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm text-gray-500">{candidate.email}</div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 flex">
+      
+        <button
+          onClick={() => handleViewProfile(candidate.userId)} 
+          className="text-gray-600 hover:text-gray-900 flex items-center"
+        >
+          <Eye className="w-4 h-4 mr-1" />
+          View Profile
+        </button>
+      </td>
+    </tr>
+  ))
+) : (
+  <tr>
+    <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+      No applicants yet.
+    </td>
+  </tr>
+)}
+
             </tbody>
           </table>
         </div>
