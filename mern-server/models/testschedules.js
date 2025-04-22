@@ -29,12 +29,23 @@ const TestScheduleSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  testFile: {
-    type: String,  // File path for the uploaded test materials
-  },
-  industryPartnerId: {  // New field to store the industry partner's ID
+  mcqs: [{
+    question: {
+      type: String,
+      required: true,
+    },
+    options: [{
+      type: String,
+      required: true,
+    }],
+    correctAnswer: {
+      type: String,
+      required: true,
+    }
+  }],
+  industryPartnerId: { 
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'IndustryPartner',  // Reference to the IndustryPartner model
+    ref: 'IndustryPartner', 
     required: true,
   },
   createdAt: {
