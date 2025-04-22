@@ -1,10 +1,11 @@
 const express = require('express');
-const nodemailer = require('nodemailer'); // For sending emails
+const nodemailer = require('nodemailer');
+const { format } = require('date-fns');  // Importing format from date-fns
 const TestSchedule = require('../models/testschedules');
 const User = require('../models/User');
 const router = express.Router();
 const Internship = require('../models/InternshipProgram');
-const IndustryPartner = require('../models/Industrypartner'); // Assuming you have an IndustryPartner model
+const IndustryPartner = require('../models/Industrypartner');
 
 router.post('/schedule-test', async (req, res) => {
   try {
@@ -52,14 +53,8 @@ router.post('/schedule-test', async (req, res) => {
     }
 
     // Update the internship stats
-// Prevent "Interested" count from going below zero
-if (internship.stats.interested - candidatesList.length < 0) {
-  internship.stats.interested = 0;  // Set to 0 if the decrement would result in a negative value
-} else {
-  internship.stats.interested -= candidatesList.length;  // Decrement normally if no issue
-}
-internship.stats.scheduled += candidatesList.length;  // Increment "Scheduled" count
-
+    internship.stats.interested -= candidatesList.length;
+    internship.stats.scheduled += candidatesList.length;
 
     // Update candidates' status to 'scheduled'
     await Internship.updateOne(
@@ -91,29 +86,30 @@ internship.stats.scheduled += candidatesList.length;  // Increment "Scheduled" c
     // Save the test schedule to the database
     await testSchedule.save();
 
-    // Get the company's (industry partner's) email address
-    const industryPartner = await IndustryPartner.findById(industryPartnerId);
-    if (!industryPartner || !industryPartner.email) {
-      return res.status(400).json({ success: false, message: 'Industry partner email not found' });
-    }
+    // Use a specific email and password for sending the email (e.g., admin or company email)
+    const senderEmail = 'f219063@cfd.nu.edu.pk';  // Your specific email (sender's email)
+    const senderPassword = 'PPITBABA123';  // Your email password
 
-    // Send email to the intern (first candidate)
-    const internEmail = candidatesList[0].email;  // Assuming the first candidate is the intern
-
-    // Create a transporter using the industry's email and credentials
+    // Create a transporter using your email and credentials
     let transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: industryPartner.email, // Use the company email
-        pass: industryPartner.emailPassword, // Assuming you store the password securely
+        user: senderEmail,  // The fixed sender email
+        pass: senderPassword,  // The fixed sender email password
       },
     });
 
+    // Format the testDate to a readable format using date-fns
+    const formattedTestDate = format(new Date(testDate), 'MMMM dd, yyyy');  // Example: "March 31, 2025"
+
+    // Send the email to the intern (first candidate)
+    const internEmail = candidatesList[0].email;  // Assuming the first candidate is the intern
+
     const mailOptions = {
-      from: industryPartner.email,  // Use the company's email as sender
-      to: internEmail,
+      from: senderEmail,  // Sender's email (your specific email)
+      to: internEmail,    // Recipient email (intern's email)
       subject: 'Test Schedule Confirmation',
-      text: `Hello ${candidatesList[0].name},\n\nYour test for the internship has been scheduled on ${testDate} at ${testTime}. Please be prepared.\n\nBest regards,\n${industryPartner.name} Internship Team`,
+      text: `Hello ${candidatesList[0].name},\n\nYour test for the internship has been scheduled on ${formattedTestDate} at ${testTime}. Please be prepared.\n\nBest regards,\nAI-Interno Team`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
