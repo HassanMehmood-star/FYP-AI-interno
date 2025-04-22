@@ -86,12 +86,13 @@ const ScheduleTest = () => {
       if (response.data.success) {
         setSuccessMessage("Test successfully scheduled!");
       } else {
-        setError("Failed to schedule the test.");
+        setError(response.data.message);  // Display error message sent from the backend
       }
     } catch (error) {
       setError("Error scheduling test. Please try again.");
     }
   };
+  
   
 
   return (

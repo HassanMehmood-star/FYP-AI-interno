@@ -1,19 +1,20 @@
 const express = require('express');
-const TestSchedule = require('../models/testschedules'); // Assuming you have the correct TestSchedule model
-const User = require('../models/User'); // Assuming you have the correct User model
+const nodemailer = require('nodemailer'); // For sending emails
+const TestSchedule = require('../models/testschedules');
+const User = require('../models/User');
 const router = express.Router();
-const Internship = require('../models/InternshipProgram'); // Assuming you have the correct Internship model
+const Internship = require('../models/InternshipProgram');
+const IndustryPartner = require('../models/Industrypartner'); // Assuming you have an IndustryPartner model
 
-// API endpoint to schedule a test for candidates
 router.post('/schedule-test', async (req, res) => {
   try {
     console.log("Request Body:", req.body);
 
     const { internshipId, candidates, testDate, testTime, industryPartnerId, mcqs } = req.body;
 
-    // Ensure that candidates and mcqs are parsed properly if they are in string format
-    const candidateList = JSON.parse(candidates); // Ensure candidates are parsed
-    const mcqData = JSON.parse(mcqs); // Ensure mcqs are parsed
+    // Ensure candidates and mcqs are parsed properly if they are passed as JSON strings
+    const candidateList = JSON.parse(candidates);
+    const mcqData = JSON.parse(mcqs);
 
     // Validate required fields
     if (!internshipId || !candidateList || !testDate || !testTime || !industryPartnerId || !mcqData) {
@@ -35,31 +36,37 @@ router.post('/schedule-test', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Some candidates not found' });
     }
 
-    // Check if any candidate has already been scheduled for a test
+    // Check if any candidate has already been scheduled for a test with the same internshipId
     for (let candidate of candidatesList) {
       const existingTest = await TestSchedule.findOne({
         'candidates.user': candidate._id,
-        internshipId,
+        internshipId,  // Check if this internship has already been scheduled for this user
       });
 
       if (existingTest) {
         return res.status(400).json({
           success: false,
-          message: `Test is already scheduled for ${candidate.name}`,
+          message: `Test is already scheduled for ${candidate.name} for the internship.`,
         });
       }
     }
 
-    // Update internship stats
-    internship.stats.interested -= candidatesList.length;
-    internship.stats.scheduled += candidatesList.length;
+    // Update the internship stats
+// Prevent "Interested" count from going below zero
+if (internship.stats.interested - candidatesList.length < 0) {
+  internship.stats.interested = 0;  // Set to 0 if the decrement would result in a negative value
+} else {
+  internship.stats.interested -= candidatesList.length;  // Decrement normally if no issue
+}
+internship.stats.scheduled += candidatesList.length;  // Increment "Scheduled" count
+
 
     // Update candidates' status to 'scheduled'
     await Internship.updateOne(
       { _id: internshipId, 'candidates._id': { $in: candidatesList.map(candidate => candidate._id) } },
       {
         $set: {
-          'candidates.$[].status': 'scheduled',
+          'candidates.$[].status': 'scheduled', // Update the status of selected candidates to scheduled
         },
       }
     );
@@ -78,11 +85,44 @@ router.post('/schedule-test', async (req, res) => {
       })),
       testDate,
       testTime,
-      mcqs: mcqData,  // Directly use the parsed MCQs data
+      mcqs: mcqData,
     });
 
     // Save the test schedule to the database
     await testSchedule.save();
+
+    // Get the company's (industry partner's) email address
+    const industryPartner = await IndustryPartner.findById(industryPartnerId);
+    if (!industryPartner || !industryPartner.email) {
+      return res.status(400).json({ success: false, message: 'Industry partner email not found' });
+    }
+
+    // Send email to the intern (first candidate)
+    const internEmail = candidatesList[0].email;  // Assuming the first candidate is the intern
+
+    // Create a transporter using the industry's email and credentials
+    let transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: industryPartner.email, // Use the company email
+        pass: industryPartner.emailPassword, // Assuming you store the password securely
+      },
+    });
+
+    const mailOptions = {
+      from: industryPartner.email,  // Use the company's email as sender
+      to: internEmail,
+      subject: 'Test Schedule Confirmation',
+      text: `Hello ${candidatesList[0].name},\n\nYour test for the internship has been scheduled on ${testDate} at ${testTime}. Please be prepared.\n\nBest regards,\n${industryPartner.name} Internship Team`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log('Error sending email:', error);
+      } else {
+        console.log('Email sent: ' + info.response);
+      }
+    });
 
     res.status(200).json({
       success: true,
@@ -94,6 +134,5 @@ router.post('/schedule-test', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 module.exports = router;
