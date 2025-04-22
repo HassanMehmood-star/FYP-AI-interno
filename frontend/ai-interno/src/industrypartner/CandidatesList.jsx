@@ -175,16 +175,17 @@ export default function CandidatesList() {
           </table>
         </div>
 
-        {/* Schedule Test Button */}
-        <div className="mt-4">
-          <button
-            className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"
-            disabled={selectedCandidates.length === 0}
-            onClick={handleScheduleTest}
-          >
-            Schedule Test for Selected Candidates
-          </button>
-        </div>
+       {/* Schedule Test Button */}
+<div className="mt-4 flex justify-end">
+  <button
+    className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 active:bg-teal-800 transition duration-200"
+    disabled={selectedCandidates.length === 0}
+    onClick={handleScheduleTest}
+  >
+    Schedule Test 
+  </button>
+</div>
+
       </div>
     </div>
   );
