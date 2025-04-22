@@ -52,37 +52,37 @@ const ScheduleTest = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Validate if MCQs are properly filled
     if (mcqs.some((mcq) => !mcq.question || mcq.options.some((option) => !option) || !mcq.correctAnswer)) {
       alert("Please complete all MCQs before submitting.");
       return;
     }
-
+  
     const mcqData = mcqs.map((mcq) => ({
       question: mcq.question,
       options: mcq.options,
       correctAnswer: mcq.correctAnswer,
     }));
-
+  
     const candidateData = selectedCandidates.map((candidate) => ({
       user: candidate.userId,
       name: candidate.name,
       email: candidate.email,
     }));
-
+  
     const industryPartnerId = internship?.createdBy?._id;
-
+  
     try {
       const response = await axios.post("http://localhost:5000/api/schedule-test", {
         testDate: date,
         testTime: time,
         internshipId,
-        candidates: candidateData,
+        candidates: JSON.stringify(candidateData),  // Stringify the candidates data
         industryPartnerId,
-        mcqs: mcqData,
+        mcqs: JSON.stringify(mcqData),  // Stringify the mcqs data
       });
-
+  
       if (response.data.success) {
         setSuccessMessage("Test successfully scheduled!");
       } else {
@@ -92,6 +92,7 @@ const ScheduleTest = () => {
       setError("Error scheduling test. Please try again.");
     }
   };
+  
 
   return (
     <div className="container mx-auto py-8 space-y-8">
