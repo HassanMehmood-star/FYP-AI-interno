@@ -14,8 +14,8 @@ router.get('/test-schedule/details', authMiddleware, async (req, res) => {
     const testSchedule = await TestSchedule.findOne({
       'candidates.user': req.user._id, // User ID from authenticated request
     })
-      .populate('internshipId')  // Populate internshipId details
-      .populate('industryPartnerId');  // Populate industryPartnerId details
+      .populate('internshipId') // Populate internshipId details
+      .populate('industryPartnerId'); // Populate industryPartnerId details
 
     // Log test schedule to debug
     console.log('Test Schedule:', testSchedule);
@@ -29,17 +29,27 @@ router.get('/test-schedule/details', authMiddleware, async (req, res) => {
       return res.status(500).json({ message: 'Missing required populated data.' });
     }
 
-    // Send test details along with internshipId and industryPartnerId
+    // Find the candidate matching the authenticated user
+    const candidate = testSchedule.candidates.find(
+      (c) => c.user.toString() === req.user._id.toString()
+    );
+
+    if (!candidate) {
+      return res.status(404).json({ message: 'User not found in test schedule candidates.' });
+    }
+
+    // Send test details including mcqs, excluding testFile
     res.status(200).json({
-      internshipId: testSchedule.internshipId._id,  // Send internshipId from the populated data
-      industryPartnerId: testSchedule.industryPartnerId._id,  // Send industryPartnerId from the populated data
-      industryPartnerName: testSchedule.industryPartnerId.name,  // Send the name of the industry partner
-      industryPartnerEmail: testSchedule.industryPartnerId.email,  // Send the email of the industry partner
-      name: req.user.name,
-      email: req.user.email,
-      testFile: testSchedule.testFile || "No file available",  // Provide default value if no file
+      internshipId: testSchedule.internshipId._id,
+      industryPartnerId: testSchedule.industryPartnerId._id,
+      industryPartnerName: testSchedule.industryPartnerId.name,
+      industryPartnerEmail: testSchedule.industryPartnerId.email,
+      name: candidate.name, // Use candidate name from testSchedule
+      email: candidate.email, // Use candidate email from testSchedule
       testDate: testSchedule.testDate,
-      testTime: testSchedule.testTime || "00:00",  // Provide default value if no time
+      testTime: testSchedule.testTime || "00:00",
+      mcqs: testSchedule.mcqs, // Include mcqs array
+      userId: req.user._id, // Include userId for frontend use
     });
   } catch (error) {
     console.error('Error fetching test schedule:', error);
