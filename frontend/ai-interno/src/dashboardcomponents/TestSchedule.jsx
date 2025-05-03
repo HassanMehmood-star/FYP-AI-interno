@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Upload, User, Mail, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Clock, Download, Upload, User, Mail, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 
 const TestSchedule = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [userData, setUserData] = useState({ name: "", email: "" });
+  const [testFile, setTestFile] = useState(""); // State for test file URL
   const [solutionFile, setSolutionFile] = useState(null);
   const [mcqs, setMcqs] = useState([]); // State to store MCQs
   const [selectedAnswers, setSelectedAnswers] = useState({}); // State to store selected answers
@@ -67,8 +68,10 @@ const TestSchedule = () => {
       }
 
       setUserData({ name: data.name, email: data.email });
+      setTestFile(data.testFile || ""); // Ensure testFile is set, default to empty string if undefined
       setMcqs(data.mcqs || []); // Store MCQs from API response
       console.log("👤 [fetchTestDetails] User data:", { name: data.name, email: data.email });
+      console.log("📄 [fetchTestDetails] Test file:", data.testFile);
       console.log("📝 [fetchTestDetails] MCQs:", data.mcqs);
 
       if (data.industryPartnerId) {
@@ -224,7 +227,7 @@ const TestSchedule = () => {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("❌ No token found. Please log in again.");
+      alert("�XQ No token found. Please log in again.");
       return;
     }
 
@@ -378,8 +381,26 @@ const TestSchedule = () => {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="p-6">
             <h2 className="text-xl font-bold mb-4">Test Submission</h2>
+            {/* Test File Download */}
+            {testFile ? (
+              <div className="mb-6">
+                <a
+                  href={testFile}
+                  download
+                  className="flex items-center gap-2 text-teal-600 hover:text-teal-800"
+                >
+                  <Download className="h-5 w-5" />
+                  <span>Download Test File</span>
+                </a>
+              </div>
+            ) : (
+              <div className="mb-6 text-gray-500">
+                <p>No test file available for download.</p>
+              </div>
+            )}
+
             {/* MCQ Display */}
-            {mcqs.length > 0 ? (
+            {mcqs.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-4">Multiple Choice Questions</h3>
                 <form onSubmit={handleSubmit}>
@@ -414,35 +435,10 @@ const TestSchedule = () => {
                   </button>
                 </form>
               </div>
-            ) : (
-              <div className="mb-6 text-gray-500">
-                <p>No multiple choice questions available.</p>
-              </div>
             )}
 
             {/* File Upload */}
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                  <Upload className="h-5 w-5" />
-                  Upload Solution
-                </label>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={submitting}
-                className={`px-6 py-2 rounded-lg text-white font-medium ${
-                  submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
-                }`}
-              >
-                {submitting ? "Submitting..." : "Submit Test"}
-              </button>
-            </form>
+         
           </div>
         </div>
       </div>
