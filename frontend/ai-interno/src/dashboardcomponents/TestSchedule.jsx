@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Download, Upload, User, Mail, FileText, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Clock, Upload, User, Mail, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 
 const TestSchedule = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [userData, setUserData] = useState({ name: "", email: "" });
-  const [testFile, setTestFile] = useState("");
   const [solutionFile, setSolutionFile] = useState(null);
   const [mcqs, setMcqs] = useState([]); // State to store MCQs
   const [selectedAnswers, setSelectedAnswers] = useState({}); // State to store selected answers
@@ -25,6 +24,8 @@ const TestSchedule = () => {
       fetchTestDetails();
     } else {
       console.log("❌ Internship ID not found");
+      setError("Internship ID not found. Please log in again.");
+      setLoading(false);
     }
   }, []);
 
@@ -66,10 +67,8 @@ const TestSchedule = () => {
       }
 
       setUserData({ name: data.name, email: data.email });
-      setTestFile(data.testFile);
       setMcqs(data.mcqs || []); // Store MCQs from API response
       console.log("👤 [fetchTestDetails] User data:", { name: data.name, email: data.email });
-      console.log("📄 [fetchTestDetails] Test file:", data.testFile);
       console.log("📝 [fetchTestDetails] MCQs:", data.mcqs);
 
       if (data.industryPartnerId) {
@@ -236,7 +235,7 @@ const TestSchedule = () => {
     formData.append("userId", userId);
     formData.append("internshipId", internshipId);
     formData.append("industryPartnerId", industryPartnerId);
-    formData.append("answers", JSON.stringify(selectedAnswers)); // Include selected answers
+    formData.append("answers", JSON.stringify(selectedAnswers));
 
     console.log("FormData being sent:", formData);
 
@@ -375,62 +374,53 @@ const TestSchedule = () => {
           </div>
         </div>
 
-        {/* MCQ Section */}
-        {mcqs.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4">Multiple Choice Questions</h2>
-              <form onSubmit={handleSubmit}>
-                {mcqs.map((mcq, index) => (
-                  <div key={index} className="mb-6 border-b pb-4">
-                    <p className="font-medium text-lg mb-2">{index + 1}. {mcq.question}</p>
-                    <div className="space-y-2">
-                      {mcq.options.map((option, optIndex) => (
-                        <label key={optIndex} className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            name={`mcq-${index}`}
-                            value={option}
-                            checked={selectedAnswers[index] === option}
-                            onChange={() => handleAnswerChange(index, option)}
-                            className="h-4 w-4 text-teal-600"
-                          />
-                          <span>{option}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
-                    submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
-                  }`}
-                >
-                  {submitting ? "Submitting..." : "Submit Test"}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* File Upload Section */}
+        {/* Test Submission and MCQ Section */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="p-6">
             <h2 className="text-xl font-bold mb-4">Test Submission</h2>
-            {testFile && (
-              <div className="mb-4">
-                <a
-                  href={testFile}
-                  download
-                  className="flex items-center gap-2 text-teal-600 hover:text-teal-800"
-                >
-                  <Download className="h-5 w-5" />
-                  <span>Download Test File</span>
-                </a>
+            {/* MCQ Display */}
+            {mcqs.length > 0 ? (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Multiple Choice Questions</h3>
+                <form onSubmit={handleSubmit}>
+                  {mcqs.map((mcq, index) => (
+                    <div key={mcq._id} className="mb-6 border-b pb-4">
+                      <p className="font-medium text-lg mb-2">{index + 1}. {mcq.question}</p>
+                      <div className="space-y-2">
+                        {mcq.options.map((option, optIndex) => (
+                          <label key={optIndex} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`mcq-${mcq._id}`}
+                              value={option}
+                              checked={selectedAnswers[index] === option}
+                              onChange={() => handleAnswerChange(index, option)}
+                              className="h-4 w-4 text-teal-600"
+                            />
+                            <span>{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
+                      submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
+                    }`}
+                  >
+                    {submitting ? "Submitting..." : "Submit Test"}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="mb-6 text-gray-500">
+                <p>No multiple choice questions available.</p>
               </div>
             )}
+
+            {/* File Upload */}
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
