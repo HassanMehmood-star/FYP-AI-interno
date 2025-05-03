@@ -2,19 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { Clock, Download, Upload, User, Mail, FileText, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+// Update this based on actual package usage
 
 const TestSchedule = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [userData, setUserData] = useState({ name: "", email: "" });
   const [testFile, setTestFile] = useState("");
   const [solutionFile, setSolutionFile] = useState(null);
+  const [mcqs, setMcqs] = useState([]); // State to store MCQs
+  const [selectedAnswers, setSelectedAnswers] = useState({}); // State to store selected answers
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [testStarted, setTestStarted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false); // Primary state for submission status
-  const [successMessage, setSuccessMessage] = useState(""); 
-  const [totalTime, setTotalTime] = useState(3600); // Default to 1 hour
+  const [submitted, setSubmitted] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [totalTime, setTotalTime] = useState(3600);
+  const concordium = window.concordium || {};  // Or however you initialize it
+
 
   useEffect(() => {
     const internshipId = localStorage.getItem("internshipId");
@@ -25,67 +30,56 @@ const TestSchedule = () => {
       console.log("❌ Internship ID not found");
     }
   }, []);
-  
-  
-  
 
   const fetchTestDetails = async () => {
     console.log("🔍 [fetchTestDetails] Starting execution...");
     try {
       const token = localStorage.getItem("token");
-    const internshipId = localStorage.getItem("internshipId"); // Get internshipId from localStorage
-    console.log("🛑 Token:", token);
-    console.log("🛑 Internship ID:", internshipId);
-    if (!token || !internshipId) {
-      throw new Error("❌ No token or internshipId found!");
-    }
+      const internshipId = localStorage.getItem("internshipId");
+      console.log("🛑 Token:", token);
+      console.log("🛑 Internship ID:", internshipId);
+      if (!token || !internshipId) {
+        throw new Error("❌ No token or internshipId found!");
+      }
 
-    const response = await fetch(`/api/test-schedule/details?internshipId=${internshipId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const response = await fetch(`/api/test-schedule/details?internshipId=${internshipId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const data = await response.json();
-    console.log("📋 [fetchTestDetails] Response data:", data);
+      const data = await response.json();
+      console.log("📋 [fetchTestDetails] Response data:", data);
 
-    // Update the internshipId in localStorage to the correct value after fetching
-    localStorage.setItem('internshipId', data.internshipId); // This ensures the latest internshipId is saved
+      localStorage.setItem('internshipId', data.internshipId);
+      console.log("Stored Internship ID in localStorage:", data.internshipId);
 
-    // Now, data.internshipId contains the most recent internshipId, which will be used for submission
-    console.log("Stored Internship ID in localStorage:", data.internshipId);
-  
-     
-  
-      
-  
       if (!response.ok) {
         throw new Error(`❌ API Error: ${data.message || "Unknown error"}`);
       }
-  
-      // Check if test is already scheduled
+
       if (data.isScheduled) {
         console.log("✅ [fetchTestDetails] Test is already scheduled!");
-        setSubmitted(true); // Set the submitted state to true
-        setLoading(false); // Stop loading state
+        setSubmitted(true);
+        setLoading(false);
         setError("Test is already scheduled, please wait for the result.");
-        return; // Exit the function early to prevent further logic
+        return;
       }
-  
-      // Proceed with other logic if the test is not scheduled
+
       setUserData({ name: data.name, email: data.email });
       setTestFile(data.testFile);
+      setMcqs(data.mcqs || []); // Store MCQs from API response
       console.log("👤 [fetchTestDetails] User data:", { name: data.name, email: data.email });
       console.log("📄 [fetchTestDetails] Test file:", data.testFile);
+      console.log("📝 [fetchTestDetails] MCQs:", data.mcqs);
 
-      // Save industryPartnerId if present in the API response
       if (data.industryPartnerId) {
         localStorage.setItem("industryPartnerId", data.industryPartnerId);
       }
       console.log("📋 [fetchTestDetails] Industry Partner ID stored:", data.industryPartnerId);
-  
+
       const now = new Date();
       const testDateTime = new Date(data.testDate);
       let hours = 0, minutes = 0;
@@ -95,20 +89,20 @@ const TestSchedule = () => {
         console.warn("⚠️ [fetchTestDetails] testTime is null, defaulting to 00:00");
       }
       testDateTime.setHours(hours, minutes, 0, 0);
-  
+
       const nowUtc = new Date(now.toISOString());
       const testDuration = data.durationInSeconds || 3600;
       setTotalTime(testDuration);
-  
+
       console.log("⏰ [fetchTestDetails] Current time (UTC):", nowUtc);
       console.log("🕒 [fetchTestDetails] Test start time:", testDateTime);
       console.log("⏳ [fetchTestDetails] Test duration (seconds):", testDuration);
-  
+
       if (nowUtc >= testDateTime) {
         console.log("✅ [fetchTestDetails] Test has started or is ongoing...");
         const storedInternshipId = localStorage.getItem("internshipId");
         let initialTimeLeft = testDuration;
-  
+
         if (!storedInternshipId || storedInternshipId !== internshipId) {
           console.log("🆕 [fetchTestDetails] New session detected, setting full duration");
           initialTimeLeft = testDuration;
@@ -119,10 +113,10 @@ const TestSchedule = () => {
         } else {
           const startTime = Number(localStorage.getItem("startTime"));
           const elapsedSinceStart = Math.floor((Date.now() - startTime) / 1000);
-  
+
           console.log("🕒 [fetchTestDetails] Stored startTime:", startTime);
           console.log("⏱️ [fetchTestDetails] Elapsed since start (seconds):", elapsedSinceStart);
-  
+
           if (isNaN(startTime) || elapsedSinceStart < 0 || elapsedSinceStart > testDuration) {
             console.log("⚠️ [fetchTestDetails] Invalid startTime or elapsed time, resetting...");
             initialTimeLeft = testDuration;
@@ -134,7 +128,7 @@ const TestSchedule = () => {
             localStorage.setItem("timeLeft", initialTimeLeft);
           }
         }
-  
+
         console.log("⏳ [fetchTestDetails] Initial time left set to:", initialTimeLeft);
         setTimeLeft(initialTimeLeft);
         setTestStarted(true);
@@ -144,7 +138,7 @@ const TestSchedule = () => {
         console.log("⏳ [fetchTestDetails] ", errorMsg);
         setError(errorMsg);
       }
-  
+
       console.log("🏁 [fetchTestDetails] Completed successfully");
       setLoading(false);
     } catch (err) {
@@ -202,46 +196,55 @@ const TestSchedule = () => {
     }
   };
 
+  const handleAnswerChange = (mcqIndex, option) => {
+    setSelectedAnswers((prev) => ({
+      ...prev,
+      [mcqIndex]: option,
+    }));
+    console.log("Selected answer for MCQ", mcqIndex, ":", option);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    // Retrieve userId from localStorage
+
     const userId = localStorage.getItem("userId");
-    console.log("User ID from localStorage before submit:", userId);  // Debugging line
-  
-    if (!solutionFile) {
-      alert("❌ Please upload your solution first");
+    console.log("User ID from localStorage before submit:", userId);
+
+    if (!solutionFile && Object.keys(selectedAnswers).length === 0) {
+      alert("❌ Please upload your solution or answer at least one MCQ");
       return;
     }
-  
-    // Retrieve other data from localStorage
+
     const internshipId = localStorage.getItem("internshipId");
     const industryPartnerId = localStorage.getItem("industryPartnerId");
-  
+
     console.log("Internship ID from localStorage:", internshipId);
     console.log("Industry Partner ID from localStorage:", industryPartnerId);
-  
-    // Check if essential data is available
+
     if (!internshipId || !userId || !industryPartnerId) {
       alert("❌ Missing internshipId, userId, or industryPartnerId. Please log in again.");
       return;
     }
-  
+
     const token = localStorage.getItem("token");
     if (!token) {
       alert("❌ No token found. Please log in again.");
       return;
     }
-  
+
     const formData = new FormData();
-    formData.append("solution", solutionFile);
-    formData.append("userId", userId);  // Debugging line: Ensure userId is appended
+    if (solutionFile) {
+      formData.append("solution", solutionFile);
+    }
+    formData.append("userId", userId);
     formData.append("internshipId", internshipId);
     formData.append("industryPartnerId", industryPartnerId);
-  
-    console.log("FormData being sent:", formData);  // Log the FormData to verify it's correct
-  
+    formData.append("answers", JSON.stringify(selectedAnswers)); // Include selected answers
+
+    console.log("FormData being sent:", formData);
+
     try {
+      setSubmitting(true);
       const response = await fetch("http://localhost:5000/api/test-schedule/submit", {
         method: "POST",
         headers: {
@@ -249,31 +252,23 @@ const TestSchedule = () => {
         },
         body: formData,
       });
-  
+
       const data = await response.json();
-      console.log("API Response:", data);  // Log the API response to verify the submission
-  
+      console.log("API Response:", data);
+
       if (!response.ok) {
         throw new Error(data.message || "Unknown error while submitting");
       }
-  
+
       setSubmitted(true);
       setSubmitting(false);
       setSuccessMessage("✅ Test successfully submitted!");
-      alert("✅ Solution submitted successfully");
+      alert("✅ Solution and answers submitted successfully");
     } catch (err) {
       setSubmitting(false);
       alert(`❌ Error: ${err.message}`);
     }
   };
-  
-  
-
-
-  
-
-  
-  
 
   if (loading) {
     return (
@@ -289,14 +284,11 @@ const TestSchedule = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-slate-100 flex items-center justify-center p-4">
-
- {/* Success Message */}
- {successMessage && (
-          <div className="bg-green-200 p-4 rounded-lg text-green-800">
+        {successMessage && (
+          <div className="bg-green-200 p-4 rounded-lg text-green-800 mb-4">
             {successMessage}
           </div>
         )}
-
         <div className="bg-white rounded-xl shadow-lg w-full max-w-lg overflow-hidden">
           <div className="p-6">
             <div className="flex items-center gap-2 text-xl font-bold mb-4">
@@ -386,6 +378,86 @@ const TestSchedule = () => {
           </div>
         </div>
 
+        {/* MCQ Section */}
+        {mcqs.length > 0 && (
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4">Multiple Choice Questions</h2>
+              <form onSubmit={handleSubmit}>
+                {mcqs.map((mcq, index) => (
+                  <div key={index} className="mb-6 border-b pb-4">
+                    <p className="font-medium text-lg mb-2">{index + 1}. {mcq.question}</p>
+                    <div className="space-y-2">
+                      {mcq.options.map((option, optIndex) => (
+                        <label key={optIndex} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`mcq-${index}`}
+                            value={option}
+                            checked={selectedAnswers[index] === option}
+                            onChange={() => handleAnswerChange(index, option)}
+                            className="h-4 w-4 text-teal-600"
+                          />
+                          <span>{option}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
+                    submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
+                  }`}
+                >
+                  {submitting ? "Submitting..." : "Submit Test"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* File Upload Section */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-xl font-bold mb-4">Test Submission</h2>
+            {testFile && (
+              <div className="mb-4">
+                <a
+                  href={testFile}
+                  download
+                  className="flex items-center gap-2 text-teal-600 hover:text-teal-800"
+                >
+                  <Download className="h-5 w-5" />
+                  <span>Download Test File</span>
+                </a>
+              </div>
+            )}
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Upload className="h-5 w-5" />
+                  Upload Solution
+                </label>
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`px-6 py-2 rounded-lg text-white font-medium ${
+                  submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
+                }`}
+              >
+                {submitting ? "Submitting..." : "Submit Test"}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
