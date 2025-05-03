@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { CalendarIcon, ChevronDown, Clock, Upload } from "lucide-react";
 import axios from "axios";
 
+
 const ScheduleTest = () => {
   const location = useLocation();
   const { internshipId } = useParams();
@@ -16,6 +17,8 @@ const ScheduleTest = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState(null);
 
+
+  const today = format(new Date(), "yyyy-MM-dd");
   useEffect(() => {
     const fetchInternship = async () => {
       try {
@@ -205,15 +208,16 @@ const ScheduleTest = () => {
           <h2 className="text-xl font-semibold">Schedule Test Time</h2>
         </div>
         <div className="p-6">
-          <div>
-            <label className="text-sm font-medium text-gray-700">Test Date</label>
-            <input
-              type="date"
-              value={date ? format(date, "yyyy-MM-dd") : ""}
-              onChange={(e) => setDate(new Date(e.target.value))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-            />
-          </div>
+        <div>
+  <label className="text-sm font-medium text-gray-700">Test Date</label>
+  <input
+    type="date"
+    value={date ? format(date, "yyyy-MM-dd") : ""}
+    min={today}
+    onChange={(e) => setDate(new Date(e.target.value))}
+    className="w-full border border-gray-300 rounded-md px-3 py-2"
+  />
+</div>
 
           <div>
             <label className="text-sm font-medium text-gray-700">Test Time</label>

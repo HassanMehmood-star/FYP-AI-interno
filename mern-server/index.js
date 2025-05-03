@@ -40,6 +40,7 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(express.json());
 
+
 async function connectDB() {    
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
