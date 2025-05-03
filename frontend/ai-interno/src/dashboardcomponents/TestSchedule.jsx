@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Clock, Download, Upload, User, Mail, FileText, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
-// Update this based on actual package usage
 
 const TestSchedule = () => {
   const [timeLeft, setTimeLeft] = useState(0);
@@ -18,8 +17,6 @@ const TestSchedule = () => {
   const [submitted, setSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [totalTime, setTotalTime] = useState(3600);
-  const concordium = window.concordium || {};  // Or however you initialize it
-
 
   useEffect(() => {
     const internshipId = localStorage.getItem("internshipId");
