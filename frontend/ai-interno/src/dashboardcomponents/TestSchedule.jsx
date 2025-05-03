@@ -401,41 +401,42 @@ const TestSchedule = () => {
 
             {/* MCQ Display */}
             {mcqs.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-4">Multiple Choice Questions</h3>
-                <form onSubmit={handleSubmit}>
-                  {mcqs.map((mcq, index) => (
-                    <div key={mcq._id} className="mb-6 border-b pb-4">
-                      <p className="font-medium text-lg mb-2">{index + 1}. {mcq.question}</p>
-                      <div className="space-y-2">
-                        {mcq.options.map((option, optIndex) => (
-                          <label key={optIndex} className="flex items-center gap-2">
-                            <input
-                              type="radio"
-                              name={`mcq-${mcq._id}`}
-                              value={option}
-                              checked={selectedAnswers[index] === option}
-                              onChange={() => handleAnswerChange(index, option)}
-                              className="h-4 w-4 text-teal-600"
-                            />
-                            <span>{option}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
-                      submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
-                    }`}
-                  >
-                    {submitting ? "Submitting..." : "Submit Test"}
-                  </button>
-                </form>
-              </div>
-            )}
+  <div className="mb-6">
+    <h3 className="text-lg font-semibold mb-4">Multiple Choice Questions</h3>
+    <form onSubmit={handleSubmit}>
+      {mcqs.map((mcq, index) => (
+        <div key={mcq._id} className="mb-6 border-b pb-4">
+          <p className="font-medium text-lg mb-2">{index + 1}. {mcq.question}</p>
+          <div className="space-y-2">
+            {mcq.options.map((option, optIndex) => (
+              <label key={optIndex} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name={`mcq-${index}`}  // use index to group options per question
+                  value={option}
+                  checked={selectedAnswers[index] === option}
+                  onChange={() => handleAnswerChange(index, option)}
+                  className="h-4 w-4 text-teal-600"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button
+        type="submit"
+        disabled={submitting}
+        className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
+          submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
+        }`}
+      >
+        {submitting ? "Submitting..." : "Submit Test"}
+      </button>
+    </form>
+  </div>
+)}
+
 
             {/* File Upload */}
          
