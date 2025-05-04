@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Download, Upload, User, Mail, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Clock, Download, User, Mail, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 
 const TestSchedule = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [userData, setUserData] = useState({ name: "", email: "" });
-  const [testFile, setTestFile] = useState(""); // State for test file URL
+  const [testFile, setTestFile] = useState("");
   const [solutionFile, setSolutionFile] = useState(null);
-  const [mcqs, setMcqs] = useState([]); // State to store MCQs
-  const [selectedAnswers, setSelectedAnswers] = useState({}); // State to store selected answers
+  const [mcqs, setMcqs] = useState([]);
+  const [selectedAnswers, setSelectedAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [testStarted, setTestStarted] = useState(false);
@@ -20,11 +20,11 @@ const TestSchedule = () => {
 
   useEffect(() => {
     const internshipId = localStorage.getItem("internshipId");
-    console.log("🟢 Internship ID on mount:", internshipId);
+    console.log("🟢 [useEffect] Internship ID on mount:", internshipId);
     if (internshipId) {
       fetchTestDetails();
     } else {
-      console.log("❌ Internship ID not found");
+      console.log("❌ [useEffect] Internship ID not found");
       setError("Internship ID not found. Please log in again.");
       setLoading(false);
     }
@@ -35,13 +35,13 @@ const TestSchedule = () => {
     try {
       const token = localStorage.getItem("token");
       const internshipId = localStorage.getItem("internshipId");
-      console.log("🛑 Token:", token);
-      console.log("🛑 Internship ID:", internshipId);
+      console.log("🛑 [fetchTestDetails] Token:", token);
+      console.log("🛑 [fetchTestDetails] Internship ID from localStorage:", internshipId);
       if (!token || !internshipId) {
-        throw new Error("❌ No token or internshipId found!");
+        throw new Error("❌ [fetchTestDetails] No token or internshipId found!");
       }
 
-      const response = await fetch(`/api/test-schedule/details?internshipId=${internshipId}`, {
+      const response = await fetch(`http://localhost:5000/api/test-schedule/details?internshipId=${internshipId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -50,13 +50,29 @@ const TestSchedule = () => {
       });
 
       const data = await response.json();
-      console.log("📋 [fetchTestDetails] Response data:", data);
-
-      localStorage.setItem('internshipId', data.internshipId);
-      console.log("Stored Internship ID in localStorage:", data.internshipId);
+      console.log("📋 [fetchTestDetails] Full response data:", data);
 
       if (!response.ok) {
-        throw new Error(`❌ API Error: ${data.message || "Unknown error"}`);
+        console.error("❌ [fetchTestDetails] API response not OK:", response.status, data);
+        throw new Error(`❌ [fetchTestDetails] API Error: ${data.message || "Unknown error"}`);
+      }
+
+      if (!data.internshipId) {
+        console.error("❌ [fetchTestDetails] Missing internshipId in response:", data);
+        throw new Error("Missing internshipId in test details response");
+      }
+
+      console.log("💾 [fetchTestDetails] Storing internshipId in localStorage:", data.internshipId);
+      localStorage.setItem('internshipId', data.internshipId);
+      console.log("💾 [fetchTestDetails] Internship ID after setItem:", localStorage.getItem("internshipId"));
+
+      if (data.industryPartnerId) {
+        console.log("💾 [fetchTestDetails] Storing industryPartnerId in localStorage:", data.industryPartnerId);
+        localStorage.setItem("industryPartnerId", data.industryPartnerId);
+      }
+      if (data.userId) {
+        console.log("💾 [fetchTestDetails] Storing userId in localStorage:", data.userId);
+        localStorage.setItem("userId", data.userId);
       }
 
       if (data.isScheduled) {
@@ -68,16 +84,11 @@ const TestSchedule = () => {
       }
 
       setUserData({ name: data.name, email: data.email });
-      setTestFile(data.testFile || ""); // Ensure testFile is set, default to empty string if undefined
-      setMcqs(data.mcqs || []); // Store MCQs from API response
+      setTestFile(data.testFile || "");
+      setMcqs(data.mcqs || []);
       console.log("👤 [fetchTestDetails] User data:", { name: data.name, email: data.email });
       console.log("📄 [fetchTestDetails] Test file:", data.testFile);
       console.log("📝 [fetchTestDetails] MCQs:", data.mcqs);
-
-      if (data.industryPartnerId) {
-        localStorage.setItem("industryPartnerId", data.industryPartnerId);
-      }
-      console.log("📋 [fetchTestDetails] Industry Partner ID stored:", data.industryPartnerId);
 
       const now = new Date();
       const testDateTime = new Date(data.testDate);
@@ -207,53 +218,75 @@ const TestSchedule = () => {
     e.preventDefault();
 
     const userId = localStorage.getItem("userId");
-    console.log("User ID from localStorage before submit:", userId);
+    let internshipId = localStorage.getItem("internshipId");
+    const industryPartnerId = localStorage.getItem("industryPartnerId");
 
-    if (!solutionFile && Object.keys(selectedAnswers).length === 0) {
-      alert("❌ Please upload your solution or answer at least one MCQ");
+    // Re-fetch if internshipId is missing or invalid
+    if (!internshipId || internshipId === "undefined") {
+      console.warn("⚠️ [handleSubmit] internshipId is missing or invalid, re-fetching test details...");
+      await fetchTestDetails();
+      internshipId = localStorage.getItem("internshipId");
+      if (!internshipId || internshipId === "undefined") {
+        console.error("❌ [handleSubmit] Failed to retrieve valid internshipId");
+        alert("❌ Could not retrieve a valid internshipId. Please reload the page or log in again.");
+        return;
+      }
+    }
+
+    console.log("🔍 [handleSubmit] Submitting with:");
+    console.log("  User ID:", userId);
+    console.log("  Internship ID:", internshipId);
+    console.log("  Industry Partner ID:", industryPartnerId);
+    console.log("  Selected Answers:", selectedAnswers);
+
+    // Validate required fields
+    if (!userId || !internshipId || !industryPartnerId) {
+      console.error("❌ [handleSubmit] Missing required fields:", {
+        userId,
+        internshipId,
+        industryPartnerId,
+      });
+      alert("❌ Missing required fields. Please ensure you are logged in and have selected an internship.");
       return;
     }
 
-    const internshipId = localStorage.getItem("internshipId");
-    const industryPartnerId = localStorage.getItem("industryPartnerId");
-
-    console.log("Internship ID from localStorage:", internshipId);
-    console.log("Industry Partner ID from localStorage:", industryPartnerId);
-
-    if (!internshipId || !userId || !industryPartnerId) {
-      alert("❌ Missing internshipId, userId, or industryPartnerId. Please log in again.");
+    if (Object.keys(selectedAnswers).length === 0) {
+      console.warn("⚠️ [handleSubmit] No MCQ answers selected");
+      alert("❌ Please answer at least one MCQ before submitting.");
       return;
     }
 
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("�XQ No token found. Please log in again.");
+      console.error("❌ [handleSubmit] No token found");
+      alert("❌ No token found. Please log in again.");
       return;
     }
 
+    // Construct FormData
     const formData = new FormData();
-    if (solutionFile) {
-      formData.append("solution", solutionFile);
-    }
     formData.append("userId", userId);
     formData.append("internshipId", internshipId);
     formData.append("industryPartnerId", industryPartnerId);
     formData.append("answers", JSON.stringify(selectedAnswers));
 
-    console.log("FormData being sent:", formData);
+    // Log FormData contents for debugging
+    for (let [key, value] of formData.entries()) {
+      console.log(`📋 [handleSubmit] FormData: ${key} = ${value}`);
+    }
 
     try {
       setSubmitting(true);
       const response = await fetch("http://localhost:5000/api/test-schedule/submit", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
 
       const data = await response.json();
-      console.log("API Response:", data);
+      console.log("📋 [handleSubmit] API Response:", data);
 
       if (!response.ok) {
         throw new Error(data.message || "Unknown error while submitting");
@@ -262,8 +295,9 @@ const TestSchedule = () => {
       setSubmitted(true);
       setSubmitting(false);
       setSuccessMessage("✅ Test successfully submitted!");
-      alert("✅ Solution and answers submitted successfully");
+      alert("✅ Answers submitted successfully");
     } catch (err) {
+      console.error("🚨 [handleSubmit] Error:", err.message);
       setSubmitting(false);
       alert(`❌ Error: ${err.message}`);
     }
@@ -380,7 +414,7 @@ const TestSchedule = () => {
         {/* Test Submission and MCQ Section */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="p-6">
-            <h2 className="text-xl font-bold mb-4">Test Submission</h2>
+            <h2 className="text-xl font-bold mb-4">Test Questions</h2>
             {/* Test File Download */}
             {testFile ? (
               <div className="mb-6">
@@ -395,51 +429,47 @@ const TestSchedule = () => {
               </div>
             ) : (
               <div className="mb-6 text-gray-500">
-                <p>No test file available for download.</p>
+                <p>No test file available.</p>
               </div>
             )}
 
             {/* MCQ Display */}
             {mcqs.length > 0 && (
-  <div className="mb-6">
-    <h3 className="text-lg font-semibold mb-4">Multiple Choice Questions</h3>
-    <form onSubmit={handleSubmit}>
-      {mcqs.map((mcq, index) => (
-        <div key={mcq._id} className="mb-6 border-b pb-4">
-          <p className="font-medium text-lg mb-2">{index + 1}. {mcq.question}</p>
-          <div className="space-y-2">
-            {mcq.options.map((option, optIndex) => (
-              <label key={optIndex} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name={`mcq-${index}`}  // use index to group options per question
-                  value={option}
-                  checked={selectedAnswers[index] === option}
-                  onChange={() => handleAnswerChange(index, option)}
-                  className="h-4 w-4 text-teal-600"
-                />
-                <span>{option}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      ))}
-      <button
-        type="submit"
-        disabled={submitting}
-        className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
-          submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
-        }`}
-      >
-        {submitting ? "Submitting..." : "Submit Test"}
-      </button>
-    </form>
-  </div>
-)}
-
-
-            {/* File Upload */}
-         
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Multiple Choice Questions</h3>
+                <form onSubmit={handleSubmit}>
+                  {mcqs.map((mcq, index) => (
+                    <div key={mcq._id} className="mb-6 border-b pb-4">
+                      <p className="font-medium text-lg mb-2">{index + 1}. {mcq.question}</p>
+                      <div className="space-y-2">
+                        {mcq.options.map((option, optIndex) => (
+                          <label key={optIndex} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`mcq-${index}`}
+                              value={option}
+                              checked={selectedAnswers[index] === option}
+                              onChange={() => handleAnswerChange(index, option)}
+                              className="h-4 w-4 text-teal-600"
+                            />
+                            <span>{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
+                      submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
+                    }`}
+                  >
+                    {submitting ? "Submitting..." : "Submit Test"}
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </div>

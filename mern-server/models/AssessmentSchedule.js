@@ -3,18 +3,18 @@ const mongoose = require('mongoose');
 const AssessmentScheduleSchema = new mongoose.Schema({
   internshipId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Internship',  // Reference to Internship model
+    ref: 'Internship',
     required: true,
   },
   industryPartnerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'IndustryPartner',  // Assuming you have an IndustryPartner model
+    ref: 'IndustryPartner',
     required: true,
   },
   candidates: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',  // Ensure this matches the User model
+      ref: 'User',
       required: true,
     },
     name: {
@@ -26,19 +26,22 @@ const AssessmentScheduleSchema = new mongoose.Schema({
       required: true,
     },
   }],
-  testFile: {
-    type: String,  // Path to the uploaded test file
-    required: true,
-  },
-  solutionFile: {
-    type: String,  // Path to the uploaded solution file
-  },
+  mcqAnswers: [{
+    questionIndex: {
+      type: Number,
+      required: true,
+    },
+    selectedOption: {
+      type: String,
+      required: true,
+    },
+  }],
   testDate: {
     type: Date,
     required: true,
   },
   testTime: {
-    type: Date,  // Save submission time (Date object instead of string)
+    type: Date,
   },
   createdAt: {
     type: Date,

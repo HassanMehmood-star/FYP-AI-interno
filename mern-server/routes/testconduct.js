@@ -4,7 +4,10 @@ const TestSchedule = require('../models/testschedules');
 const authMiddleware = require('../middlewares/authMiddlewares');
 const multer = require('multer');
 const AssessmentSchedule = require('../models/AssessmentSchedule');
-// Get test details for the logged-in user
+const mongoose = require('mongoose');
+// Configure multer to parse text fields only (no files)
+const upload = multer().none();
+
 // Get test details for the logged-in user
 router.get('/test-schedule/details', authMiddleware, async (req, res) => {
   try {
@@ -57,63 +60,73 @@ router.get('/test-schedule/details', authMiddleware, async (req, res) => {
   }
 });
 
-
-  
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/');  // Path to store files (ensure this folder exists)
-    },
-    filename: (req, file, cb) => {
-      cb(null, Date.now() + '-' + file.originalname);  // Naming the file with a timestamp
-    },
-  });
-  
-  const upload = multer({ storage: storage });
-// Route to handle solution upload
-router.post('/test-schedule/submit', authMiddleware, upload.single('solution'), async (req, res) => {
+// Handle MCQ answers submission
+router.post('/test-schedule/submit', authMiddleware, upload, async (req, res) => {
   try {
-    // Debugging: Log the incoming request data
-    console.log('Request Body:', req.body);  // Log all form data, including userId
-    console.log('Received Solution File:', req.file);  // Log the uploaded solution file
+    console.log('📋 [POST /test-schedule/submit] Request headers:', req.headers);
+    console.log('📋 [POST /test-schedule/submit] Request body:', req.body);
 
-    const { internshipId, userId, industryPartnerId } = req.body;
+    const { internshipId, userId, industryPartnerId, answers } = req.body;
 
-    // Ensure that internshipId, userId, industryPartnerId, and solution file are valid
-    if (!internshipId || !userId || !industryPartnerId || !req.file) {
-      console.log('Missing data:', { internshipId, userId, industryPartnerId, solutionFile: req.file });
-      return res.status(400).json({ message: 'Missing data: internshipId, userId, industryPartnerId, or solution file.' });
+    // Validate required fields
+    if (!internshipId || !mongoose.Types.ObjectId.isValid(internshipId)) {
+      console.error('❌ [POST /test-schedule/submit] Invalid or missing internshipId:', internshipId);
+      return res.status(400).json({ message: 'Invalid or missing internshipId' });
+    }
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      console.error('❌ [POST /test-schedule/submit] Invalid or missing userId:', userId);
+      return res.status(400).json({ message: 'Invalid or missing userId' });
+    }
+    if (!industryPartnerId || !mongoose.Types.ObjectId.isValid(industryPartnerId)) {
+      console.error('❌ [POST /test-schedule/submit] Invalid or missing industryPartnerId:', industryPartnerId);
+      return res.status(400).json({ message: 'Invalid or missing industryPartnerId' });
     }
 
-    // Debugging: Log the incoming data for clarity
-    console.log(`Internship ID: ${internshipId}`);
-    console.log(`User ID: ${userId}`);
-    console.log(`Industry Partner ID: ${industryPartnerId}`);
+    // Parse answers if provided
+    let mcqAnswers = [];
+    if (answers) {
+      try {
+        const parsedAnswers = JSON.parse(answers);
+        mcqAnswers = Object.entries(parsedAnswers).map(([questionIndex, selectedOption]) => ({
+          questionIndex: Number(questionIndex),
+          selectedOption,
+        }));
+      } catch (parseError) {
+        console.error('❌ [POST /test-schedule/submit] Error parsing answers:', parseError);
+        return res.status(400).json({ message: 'Invalid answers format' });
+      }
+    }
 
-    // Create a new test schedule entry with the provided data
+    // Get current time for submission
+    const submissionTime = new Date();
+
+    // Create new test schedule entry
     const newAssessmentSchedule = new AssessmentSchedule({
       internshipId,
-      industryPartnerId,  // Add the industryPartnerId to the document
+      industryPartnerId,
       candidates: [{
-        user: userId,  // Ensure the userId is correctly added
-        name: req.user.name,  // Assuming user data is attached from authMiddleware
+        user: userId,
+        name: req.user.name,
         email: req.user.email,
       }],
-      testFile: req.file.path,  // Store the path of the test file
-      solutionFile: req.file.path,  // Store the path of the solution file
-      testDate: new Date(),  // Assuming current date is the test date (you can modify this)
-      testTime: new Date(),  // Assuming test submission time
+      mcqAnswers,
+      testDate: new Date(),
+      testTime: submissionTime,
     });
 
-    // Save the data in the database
+    // Save to the database
     await newAssessmentSchedule.save();
-
-    res.status(200).json({ message: 'Solution submitted successfully!' });
-  } catch (error) {
-    console.error('Error submitting solution:', error);
-    res.status(500).json({ message: 'Server error, please try again.' });
+    console.log('✅ [POST /test-schedule/submit] Test schedule saved successfully', newAssessmentSchedule._id);
+    res.status(200).json({ message: 'Test submitted successfully!', id: newAssessmentSchedule._id });
+  } catch (err) {
+    console.error('🚨 [POST /test-schedule/submit] Error:', err.message);
+    if (err.name === 'ValidationError') {
+      console.error('Validation Errors:', err.errors);
+    } else if (err.name === 'MongoError') {
+      console.error('MongoDB Error:', err);
+    }
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
-
-
 
 module.exports = router;
