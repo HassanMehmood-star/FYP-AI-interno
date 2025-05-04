@@ -18,7 +18,7 @@ const TestSchedule = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [totalTime, setTotalTime] = useState(3600);
   const [internshipIdState, setInternshipIdState] = useState(localStorage.getItem("internshipId") || "");
-
+  const [testAlreadySubmitted, setTestAlreadySubmitted] = useState(false);
   // Validate MongoDB ObjectId
   const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
 
@@ -86,6 +86,9 @@ const TestSchedule = () => {
       setUserData({ name: data.name, email: data.email });
       setTestFile(data.testFile || "");
       setMcqs(data.mcqs || []);
+
+
+      await checkTestSubmission(data.userId, data.internshipId, data.industryPartnerId);
 
       const now = new Date();
       const testDateTime = new Date(data.testDate);
@@ -172,6 +175,26 @@ const TestSchedule = () => {
     if (file) setSolutionFile(file);
   };
 
+
+  const checkTestSubmission = async (userId, internshipId, industryPartnerId) => {
+    try {
+      const response = await fetch("http://localhost:5000/api/test-schedule/check-existing", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, internshipId, industryPartnerId }),
+      });
+
+      const data = await response.json();
+      if (data.exists) {
+        setTestAlreadySubmitted(true);
+      }
+    } catch (err) {
+      console.error("Error checking test submission:", err);
+    }
+  };
+
   const handleAnswerChange = (mcqIndex, option) => {
     setSelectedAnswers((prev) => ({
       ...prev,
@@ -181,6 +204,10 @@ const TestSchedule = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (testAlreadySubmitted) {
+      alert("❌ You have already submitted the test for this internship.");
+      return;
+    }
 
     const userId = localStorage.getItem("userId");
     let internshipId = internshipIdState;

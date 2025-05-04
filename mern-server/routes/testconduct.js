@@ -129,4 +129,28 @@ router.post('/test-schedule/submit', authMiddleware, upload, async (req, res) =>
   }
 });
 
+
+// Backend route to check if test is already submitted
+router.post("/test-schedule/check-existing", async (req, res) => {
+  const { userId, internshipId, industryPartnerId } = req.body;
+
+  try {
+    const existingTest = await AssessmentSchedule.findOne({
+      "candidates.user": userId,
+      internshipId: internshipId,
+      industryPartnerId: industryPartnerId,
+    });
+
+    if (existingTest) {
+      return res.json({ exists: true });
+    }
+
+    return res.json({ exists: false });
+  } catch (err) {
+    console.error("Error checking existing test submission:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
 module.exports = router;
