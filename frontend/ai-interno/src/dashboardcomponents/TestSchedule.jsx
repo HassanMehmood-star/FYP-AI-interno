@@ -17,31 +17,36 @@ const TestSchedule = () => {
   const [submitted, setSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [totalTime, setTotalTime] = useState(3600);
+  const [internshipIdState, setInternshipIdState] = useState(localStorage.getItem("internshipId") || "");
+
+  // Validate MongoDB ObjectId
+  const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
 
   useEffect(() => {
-    const internshipId = localStorage.getItem("internshipId");
-    console.log("🟢 [useEffect] Internship ID on mount:", internshipId);
-    if (internshipId) {
-      fetchTestDetails();
-    } else {
-      console.log("❌ [useEffect] Internship ID not found");
-      setError("Internship ID not found. Please log in again.");
+    console.log("🟢 [useEffect] Initializing TestSchedule component");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.log("❌ [useEffect] No token found, redirecting to login");
+      setError("Please log in to access the test.");
       setLoading(false);
+      window.location.href = "/login";
+      return;
     }
+
+    fetchTestDetails();
   }, []);
 
   const fetchTestDetails = async () => {
     console.log("🔍 [fetchTestDetails] Starting execution...");
     try {
       const token = localStorage.getItem("token");
-      const internshipId = localStorage.getItem("internshipId");
-      console.log("🛑 [fetchTestDetails] Token:", token);
-      console.log("🛑 [fetchTestDetails] Internship ID from localStorage:", internshipId);
-      if (!token || !internshipId) {
-        throw new Error("❌ [fetchTestDetails] No token or internshipId found!");
+      console.log("🔑 [fetchTestDetails] Token:", token);
+
+      if (!token) {
+        throw new Error("No token found! Please log in again.");
       }
 
-      const response = await fetch(`http://localhost:5000/api/test-schedule/details?internshipId=${internshipId}`, {
+      const response = await fetch("http://localhost:5000/api/test-schedule/details", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -53,50 +58,41 @@ const TestSchedule = () => {
       console.log("📋 [fetchTestDetails] Full response data:", data);
 
       if (!response.ok) {
-        console.error("❌ [fetchTestDetails] API response not OK:", response.status, data);
-        throw new Error(`❌ [fetchTestDetails] API Error: ${data.message || "Unknown error"}`);
+        if (response.status === 401) {
+          console.error("❌ [fetchTestDetails] Unauthorized, redirecting to login...");
+          localStorage.removeItem("token");
+          localStorage.removeItem("internshipId");
+          window.location.href = "/login";
+          return null;
+        }
+        throw new Error(`API Error: ${data.message || "Unknown error"}`);
       }
 
-      if (!data.internshipId) {
-        console.error("❌ [fetchTestDetails] Missing internshipId in response:", data);
-        throw new Error("Missing internshipId in test details response");
+      if (!data.internshipId || !isValidObjectId(data.internshipId)) {
+        throw new Error("Invalid or missing internshipId in response");
       }
 
-      console.log("💾 [fetchTestDetails] Storing internshipId in localStorage:", data.internshipId);
-      localStorage.setItem('internshipId', data.internshipId);
-      console.log("💾 [fetchTestDetails] Internship ID after setItem:", localStorage.getItem("internshipId"));
+      setInternshipIdState(data.internshipId);
+      localStorage.setItem("internshipId", data.internshipId);
+      console.log("✅ [fetchTestDetails] Stored internshipId:", data.internshipId);
 
       if (data.industryPartnerId) {
-        console.log("💾 [fetchTestDetails] Storing industryPartnerId in localStorage:", data.industryPartnerId);
         localStorage.setItem("industryPartnerId", data.industryPartnerId);
       }
       if (data.userId) {
-        console.log("💾 [fetchTestDetails] Storing userId in localStorage:", data.userId);
         localStorage.setItem("userId", data.userId);
-      }
-
-      if (data.isScheduled) {
-        console.log("✅ [fetchTestDetails] Test is already scheduled!");
-        setSubmitted(true);
-        setLoading(false);
-        setError("Test is already scheduled, please wait for the result.");
-        return;
       }
 
       setUserData({ name: data.name, email: data.email });
       setTestFile(data.testFile || "");
       setMcqs(data.mcqs || []);
-      console.log("👤 [fetchTestDetails] User data:", { name: data.name, email: data.email });
-      console.log("📄 [fetchTestDetails] Test file:", data.testFile);
-      console.log("📝 [fetchTestDetails] MCQs:", data.mcqs);
 
       const now = new Date();
       const testDateTime = new Date(data.testDate);
-      let hours = 0, minutes = 0;
+      let hours = 0,
+        minutes = 0;
       if (data.testTime) {
         [hours, minutes] = data.testTime.split(":").map(Number);
-      } else {
-        console.warn("⚠️ [fetchTestDetails] testTime is null, defaulting to 00:00");
       }
       testDateTime.setHours(hours, minutes, 0, 0);
 
@@ -104,73 +100,49 @@ const TestSchedule = () => {
       const testDuration = data.durationInSeconds || 3600;
       setTotalTime(testDuration);
 
-      console.log("⏰ [fetchTestDetails] Current time (UTC):", nowUtc);
-      console.log("🕒 [fetchTestDetails] Test start time:", testDateTime);
-      console.log("⏳ [fetchTestDetails] Test duration (seconds):", testDuration);
-
       if (nowUtc >= testDateTime) {
-        console.log("✅ [fetchTestDetails] Test has started or is ongoing...");
-        const storedInternshipId = localStorage.getItem("internshipId");
         let initialTimeLeft = testDuration;
-
-        if (!storedInternshipId || storedInternshipId !== internshipId) {
-          console.log("🆕 [fetchTestDetails] New session detected, setting full duration");
-          initialTimeLeft = testDuration;
+        if (!localStorage.getItem("startTime") || localStorage.getItem("internshipId") !== data.internshipId) {
           localStorage.setItem("timeLeft", testDuration);
           localStorage.setItem("startTime", Date.now());
-          localStorage.setItem("internshipId", internshipId);
+          localStorage.setItem("internshipId", data.internshipId);
           localStorage.setItem("userId", data.userId || "temp-user-id");
         } else {
           const startTime = Number(localStorage.getItem("startTime"));
           const elapsedSinceStart = Math.floor((Date.now() - startTime) / 1000);
-
-          console.log("🕒 [fetchTestDetails] Stored startTime:", startTime);
-          console.log("⏱️ [fetchTestDetails] Elapsed since start (seconds):", elapsedSinceStart);
-
           if (isNaN(startTime) || elapsedSinceStart < 0 || elapsedSinceStart > testDuration) {
-            console.log("⚠️ [fetchTestDetails] Invalid startTime or elapsed time, resetting...");
             initialTimeLeft = testDuration;
             localStorage.setItem("timeLeft", testDuration);
             localStorage.setItem("startTime", Date.now());
           } else {
             initialTimeLeft = Math.max(testDuration - elapsedSinceStart, 0);
-            console.log("⏲️ [fetchTestDetails] Calculated remaining time:", initialTimeLeft);
             localStorage.setItem("timeLeft", initialTimeLeft);
           }
         }
 
-        console.log("⏳ [fetchTestDetails] Initial time left set to:", initialTimeLeft);
         setTimeLeft(initialTimeLeft);
         setTestStarted(true);
-        console.log("🚀 [fetchTestDetails] Test started!");
       } else {
-        const errorMsg = `⏳ Test has not yet started. It will start at ${testDateTime.toLocaleString()}`;
-        console.log("⏳ [fetchTestDetails] ", errorMsg);
-        setError(errorMsg);
+        setError(`Test has not yet started. It will start at ${testDateTime.toLocaleString()}`);
       }
 
-      console.log("🏁 [fetchTestDetails] Completed successfully");
       setLoading(false);
+      return data.internshipId;
     } catch (err) {
       console.error("🚨 [fetchTestDetails] Error:", err.message);
       setError(err.message);
       setLoading(false);
+      return null;
     }
   };
 
   useEffect(() => {
-    if (!testStarted || submitted || timeLeft <= 0) {
-      console.log("Timer not starting due to:", { testStarted, submitted, timeLeft });
-      return;
-    }
-
-    console.log("⏲️ Starting timer with timeLeft:", timeLeft);
+    if (!testStarted || submitted || timeLeft <= 0) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 0) {
           clearInterval(timer);
-          console.log("⏰ Timer reached zero");
           return 0;
         }
         const updatedTime = prev - 1;
@@ -179,10 +151,7 @@ const TestSchedule = () => {
       });
     }, 1000);
 
-    return () => {
-      console.log("🧹 Cleaning up timer");
-      clearInterval(timer);
-    };
+    return () => clearInterval(timer);
   }, [testStarted, submitted]);
 
   const formatTime = (seconds) => {
@@ -200,10 +169,7 @@ const TestSchedule = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      console.log("File selected:", file.name);
-      setSolutionFile(file);
-    }
+    if (file) setSolutionFile(file);
   };
 
   const handleAnswerChange = (mcqIndex, option) => {
@@ -211,47 +177,33 @@ const TestSchedule = () => {
       ...prev,
       [mcqIndex]: option,
     }));
-    console.log("Selected answer for MCQ", mcqIndex, ":", option);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const userId = localStorage.getItem("userId");
-    let internshipId = localStorage.getItem("internshipId");
+    let internshipId = internshipIdState;
     const industryPartnerId = localStorage.getItem("industryPartnerId");
 
-    // Re-fetch if internshipId is missing or invalid
-    if (!internshipId || internshipId === "undefined") {
-      console.warn("⚠️ [handleSubmit] internshipId is missing or invalid, re-fetching test details...");
-      await fetchTestDetails();
-      internshipId = localStorage.getItem("internshipId");
-      if (!internshipId || internshipId === "undefined") {
+    if (!internshipId || !isValidObjectId(internshipId)) {
+      console.warn("⚠️ [handleSubmit] internshipId is missing or invalid, re-fetching...");
+      internshipId = await fetchTestDetails();
+      if (!internshipId || !isValidObjectId(internshipId)) {
         console.error("❌ [handleSubmit] Failed to retrieve valid internshipId");
         alert("❌ Could not retrieve a valid internshipId. Please reload the page or log in again.");
         return;
       }
+      setInternshipIdState(internshipId);
     }
 
-    console.log("🔍 [handleSubmit] Submitting with:");
-    console.log("  User ID:", userId);
-    console.log("  Internship ID:", internshipId);
-    console.log("  Industry Partner ID:", industryPartnerId);
-    console.log("  Selected Answers:", selectedAnswers);
-
-    // Validate required fields
-    if (!userId || !internshipId || !industryPartnerId) {
-      console.error("❌ [handleSubmit] Missing required fields:", {
-        userId,
-        internshipId,
-        industryPartnerId,
-      });
+    if (!userId || !industryPartnerId) {
+      console.error("❌ [handleSubmit] Missing required fields:", { userId, industryPartnerId });
       alert("❌ Missing required fields. Please ensure you are logged in and have selected an internship.");
       return;
     }
 
     if (Object.keys(selectedAnswers).length === 0) {
-      console.warn("⚠️ [handleSubmit] No MCQ answers selected");
       alert("❌ Please answer at least one MCQ before submitting.");
       return;
     }
@@ -263,17 +215,11 @@ const TestSchedule = () => {
       return;
     }
 
-    // Construct FormData
     const formData = new FormData();
     formData.append("userId", userId);
     formData.append("internshipId", internshipId);
     formData.append("industryPartnerId", industryPartnerId);
     formData.append("answers", JSON.stringify(selectedAnswers));
-
-    // Log FormData contents for debugging
-    for (let [key, value] of formData.entries()) {
-      console.log(`📋 [handleSubmit] FormData: ${key} = ${value}`);
-    }
 
     try {
       setSubmitting(true);
@@ -286,8 +232,6 @@ const TestSchedule = () => {
       });
 
       const data = await response.json();
-      console.log("📋 [handleSubmit] API Response:", data);
-
       if (!response.ok) {
         throw new Error(data.message || "Unknown error while submitting");
       }
@@ -358,7 +302,6 @@ const TestSchedule = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-slate-100 py-8 px-4">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header with Timer */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="bg-gradient-to-r from-teal-600 to-teal-600 p-6 text-white">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -384,7 +327,6 @@ const TestSchedule = () => {
           </div>
         </div>
 
-        {/* User Info Section */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="p-6">
             <h2 className="text-xl font-bold mb-4">Candidate Information</h2>
@@ -411,11 +353,9 @@ const TestSchedule = () => {
           </div>
         </div>
 
-        {/* Test Submission and MCQ Section */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="p-6">
             <h2 className="text-xl font-bold mb-4">Test Questions</h2>
-            {/* Test File Download */}
             {testFile ? (
               <div className="mb-6">
                 <a
@@ -433,7 +373,6 @@ const TestSchedule = () => {
               </div>
             )}
 
-            {/* MCQ Display */}
             {mcqs.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-4">Multiple Choice Questions</h3>
@@ -460,9 +399,11 @@ const TestSchedule = () => {
                   ))}
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || error || !internshipIdState}
                     className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
-                      submitting ? "bg-gray-400" : "bg-teal-600 hover:bg-teal-700"
+                      submitting || error || !internshipIdState
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-teal-600 hover:bg-teal-700"
                     }`}
                   >
                     {submitting ? "Submitting..." : "Submit Test"}
