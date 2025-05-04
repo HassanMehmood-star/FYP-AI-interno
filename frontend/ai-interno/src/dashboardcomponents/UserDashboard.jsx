@@ -87,7 +87,7 @@ const UserDashboard = () => {
   useEffect(() => {
     const fetchTestSchedule = async () => {
       try {
-        const response = await axios.get('/api/getTestSchedule', {
+        const response = await axios.get('/api/test-details', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
