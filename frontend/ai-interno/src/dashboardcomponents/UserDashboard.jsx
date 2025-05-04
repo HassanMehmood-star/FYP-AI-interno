@@ -93,7 +93,7 @@ const UserDashboard = () => {
           },
         });
 
-        console.log('Test schedule response:', response.data);
+        console.log('Test schedle response:', response.data);
 
         if (response.data.status === 'success' && response.data.data) {
           setTestSchedule(response.data.data);
