@@ -1,69 +1,80 @@
+const express = require('express');
 const nodemailer = require('nodemailer');
-const AssessmentSchedule = require('../models/AssessmentSchedule');
-const Internship = require('../models/InternshipProgram');
-const express = require('express'); 
-const router = express.Router(); 
-// Import express
-// Configure nodemailer transporter
+const Internship = require('../models/InternshipProgram'); // Correct model path
+const Candidate = require('../models/User'); // Correct model path
+
+const router = express.Router();
+
+// Create a transporter to send email
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: 'gmail',  // You can use another email service like SendGrid, Mailgun, etc.
   auth: {
-    user: 'f219063@cfd.nu.edu.pk',  // Replace with your email
-    pass: 'PPITBABA123',  // Replace with your email password or app-specific password
+    user: 'f219063@cfd.nu.edu.pk',  // Add your email here
+    pass: 'PPITBABA123',  // Add your email password here
   },
 });
 
-router.post('/hire-reject', async (req, res) => {
+const sendEmail = (email, subject, message) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: subject,
+    text: message,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log('Error sending email:', error);
+    } else {
+      console.log('Email sent:', info.response);
+    }
+  });
+};
+
+// Endpoint to handle hire/reject action
+router.post('/api/assessments/:internshipId/candidates/:candidateId', async (req, res) => {
+  const { internshipId, candidateId } = req.params;
+  console.log('Internship ID:', internshipId); // Debugging log
+  console.log('Candidate ID:', candidateId);  // Debugging log
+  const { action } = req.body;  // Action is either "hire" or "reject"
+
   try {
-    const { assessmentId, candidateId, action } = req.body;  // Get the action (hire or reject)
-
-    // Find the assessment
-    const assessment = await AssessmentSchedule.findById(assessmentId).populate('internshipId');
-    
-    if (!assessment) {
-      return res.status(404).json({ error: 'Assessment not found' });
+    const internship = await Internship.findById(internshipId);
+    if (!internship) {
+      return res.status(404).send('Internship not found');
     }
 
-    // Find the candidate within the assessment
-    const candidate = assessment.candidates.find(c => c.user.toString() === candidateId);
-
+    const candidate = internship.candidates.find((c) => c._id.toString() === candidateId);
     if (!candidate) {
-      return res.status(404).json({ error: 'Candidate not found' });
+      return res.status(404).send('Candidate not found');
     }
 
-    // Update candidate status and internship candidates list
     if (action === 'hire') {
       candidate.status = 'hired';
-      await Internship.findByIdAndUpdate(assessment.internshipId._id, {
-        $push: { candidates: { _id: candidate._id, status: 'hired' } },
-        $inc: { 'stats.hired': 1 },  // Increment the hired counter
-      });
+      internship.stats.hired += 1;
+      sendEmail(
+        candidate.email,
+        'Congratulations! You Have Been Hired',
+        'We are happy to inform you that you have been selected for the internship. Congratulations!'
+      );
     } else if (action === 'reject') {
       candidate.status = 'rejected';
-    } else {
-      return res.status(400).json({ error: 'Invalid action' });
+      internship.stats.inOffer -= 1;
+      sendEmail(
+        candidate.email,
+        'Application Status: Rejected',
+        'Unfortunately, we are not moving forward with your application. We appreciate your interest and wish you the best.'
+      );
     }
 
-    // Save the updated assessment
-    await assessment.save();
-
-    // Send email to the candidate
-    const mailOptions = {
-      from: 'f219063@cfd.nu.edu.pk',
-      to: candidate.email,
-      subject: action === 'hire' ? 'You have been selected for the internship!' : 'You have not been selected for the internship',
-      text: action === 'hire'
-        ? `Congratulations! You have been selected for the internship at ${assessment.internshipId.title}.`
-        : `Unfortunately, you have not been selected for the internship at ${assessment.internshipId.title}. We wish you the best for your future endeavors.`,
-    };
-
-    // Send email
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({ message: `Candidate ${action === 'hire' ? 'hired' : 'rejected'} successfully` });
+    // Save the updated internship document with the updated candidate status
+    await internship.save();
+    res.status(200).send('Action successful');
   } catch (error) {
-    console.error('Error in hire/reject:', error);
-    res.status(500).json({ error: 'An error occurred' });
+    console.error(error);
+    res.status(500).send('Error processing request');
   }
 });
+
+// Export the router so it can be used in the main app
 module.exports = router;

@@ -26,7 +26,6 @@ const ManageHiring = () => {
         }
 
         const data = await response.json();
-        console.log("Fetched assessments:", data); // Log to inspect data structure
         setAssessments(data);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -37,6 +36,40 @@ const ManageHiring = () => {
 
     fetchAssessments();
   }, []);
+
+  const handleAction = async (action, internshipId, candidateId) => {
+    console.log("Internship ID:", internshipId);  // Debugging log
+    console.log("Candidate ID:", candidateId);  // Debugging log
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No token found in localStorage. Please login first.");
+        return;
+      }
+  
+      // Ensure that internshipId and candidateId are correctly passed
+      const url = `/api/assessments/${internshipId}/candidates/${candidateId}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to perform action");
+      }
+  
+      alert(`Action ${action} successful`);
+    } catch (error) {
+      console.error("Error performing action:", error);
+    }
+  };
+  
+  
 
   if (loading) {
     return <div>Loading...</div>;
@@ -63,11 +96,12 @@ const ManageHiring = () => {
                   {assessments.map((assessment, i) => (
                     assessment.candidates?.map((candidate, j) => (
                       <tr key={`${i}-${j}`} className="hover:bg-gray-50">
+                        
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {candidate?._doc?.name || 'No Name'} {/* Accessing name from _doc */}
+                          {candidate?._doc?.name || 'No Name'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {candidate?._doc?.email || 'No Email'} {/* Accessing email from _doc */}
+                          {candidate?._doc?.email || 'No Email'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
@@ -80,16 +114,19 @@ const ManageHiring = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex space-x-2">
-                            <button 
-                              className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition-colors"
-                            >
-                              Hire
-                            </button>
-                            <button 
-                              className="px-3 py-1 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 transition-colors"
-                            >
-                              Reject
-                            </button>
+                          <button 
+  className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition-colors"
+  onClick={() => handleAction('hire', assessment._id, candidate._id)}
+>
+  Hire
+</button>
+<button 
+  className="px-3 py-1 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 transition-colors"
+  onClick={() => handleAction('reject', assessment._id, candidate._id)}
+>
+  Reject
+</button>
+
                           </div>
                         </td>
                       </tr>
