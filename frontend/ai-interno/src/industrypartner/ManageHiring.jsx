@@ -49,7 +49,8 @@ const ManageHiring = () => {
       }
   
       // Ensure that internshipId and candidateId are correctly passed
-      const url = `/api/assessments/${internshipId}/candidates/${candidateId}`;
+      const url = `http://localhost:5000/api/assessments/${internshipId}/candidates/${candidateId}`;
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -93,45 +94,45 @@ const ManageHiring = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {assessments.map((assessment, i) => (
-                    assessment.candidates?.map((candidate, j) => (
-                      <tr key={`${i}-${j}`} className="hover:bg-gray-50">
-                        
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {candidate?._doc?.name || 'No Name'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {candidate?._doc?.email || 'No Email'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            {candidate.mcqAnswers?.map((answer, idx) => (
-                              <div key={idx} className="text-sm text-gray-500">
-                                Q{answer.questionIndex + 1}: {answer.selectedOption}
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex space-x-2">
-                          <button 
+                {assessments.map((assessment, i) => (
+  assessment.candidates?.map((candidate, j) => (
+    <tr key={`${i}-${j}`} className="hover:bg-gray-50">
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+        {candidate?._doc?.name || 'No Name'}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {candidate?._doc?.email || 'No Email'}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div>
+          {candidate.mcqAnswers?.map((answer, idx) => (
+            <div key={idx} className="text-sm text-gray-500">
+              Q{answer.questionIndex + 1}: {answer.selectedOption}
+            </div>
+          ))}
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex space-x-2">
+        <button 
   className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition-colors"
-  onClick={() => handleAction('hire', assessment._id, candidate._id)}
+  onClick={() => handleAction('hire', assessment._id, candidate._doc.user)}  // Access candidate ID here
 >
   Hire
 </button>
 <button 
   className="px-3 py-1 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 transition-colors"
-  onClick={() => handleAction('reject', assessment._id, candidate._id)}
+  onClick={() => handleAction('reject', assessment._id, candidate._doc.user)}  // Access candidate ID here
 >
   Reject
 </button>
 
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ))}
+        </div>
+      </td>
+    </tr>
+  ))
+))}
+
                 </tbody>
               </table>
             </div>
