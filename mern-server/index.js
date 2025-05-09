@@ -550,6 +550,8 @@ app.get('/api/candidates', async (req, res) => {
 
 
  // Ensure the routes are prefixed with /api
+ const hiredCandidateRoutes = require('./routes/hiredcandidate');
+ app.use('/api', hiredCandidateRoutes);
 
 
 // Route to get selected candidates for an internship
