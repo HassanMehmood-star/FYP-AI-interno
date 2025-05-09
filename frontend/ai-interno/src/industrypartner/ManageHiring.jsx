@@ -7,6 +7,7 @@ const ManageHiring = () => {
   useEffect(() => {
     const fetchAssessments = async () => {
       try {
+        console.log('Fetching assessments...'); // Debugging log
         const token = localStorage.getItem('token');
         if (!token) {
           console.error("No token found in localStorage. Please login first.");
@@ -21,11 +22,13 @@ const ManageHiring = () => {
           },
         });
 
+        console.log('Received response:', response);  // Debugging log for response
         if (!response.ok) {
           throw new Error("Failed to fetch assessments");
         }
 
         const data = await response.json();
+        console.log('Fetched assessments data:', data); // Debugging log for data
         setAssessments(data);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -37,38 +40,8 @@ const ManageHiring = () => {
     fetchAssessments();
   }, []);
 
-  const handleAction = async (action, internshipId, candidateId) => {
-    console.log("Internship ID:", internshipId);  // Debugging log
-    console.log("Candidate ID:", candidateId);  // Debugging log
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error("No token found in localStorage. Please login first.");
-        return;
-      }
-  
-      // Ensure that internshipId and candidateId are correctly passed
-      const url = `http://localhost:5000/api/assessments/${internshipId}/candidates/${candidateId}`;
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ action }),
-      });
   
-      if (!response.ok) {
-        throw new Error("Failed to perform action");
-      }
-  
-      alert(`Action ${action} successful`);
-    } catch (error) {
-      console.error("Error performing action:", error);
-    }
-  };
   
   
 
@@ -116,13 +89,13 @@ const ManageHiring = () => {
         <div className="flex space-x-2">
         <button 
   className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition-colors"
-  onClick={() => handleAction('hire', assessment._id, candidate._doc.user)}  // Access candidate ID here
+  onClick={() => handleAction('')}  // Access candidate ID here
 >
   Hire
 </button>
 <button 
   className="px-3 py-1 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 transition-colors"
-  onClick={() => handleAction('reject', assessment._id, candidate._doc.user)}  // Access candidate ID here
+  onClick={() => handleAction()}  // Access candidate ID here
 >
   Reject
 </button>

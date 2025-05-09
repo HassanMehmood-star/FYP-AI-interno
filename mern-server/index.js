@@ -674,8 +674,7 @@ const checktest = require('./routes/checktest');
   app.use('/api', recommendationRoutes);
 
 
-  const hireRejectRoute = require('./routes/hire_reject');
-  app.use('/api', hireRejectRoute);
+
 
   const userRoute = require('./routes/industrypartnerroute'); // Adjust to the correct path
 
