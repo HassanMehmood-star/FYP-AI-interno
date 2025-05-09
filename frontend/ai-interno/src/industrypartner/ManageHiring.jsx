@@ -38,12 +38,9 @@ const ManageHiring = () => {
     };
 
     fetchAssessments();
-  }, []);
+  }, []);;
 
 
-  
-  
-  
 
   if (loading) {
     return <div>Loading...</div>;
@@ -89,13 +86,13 @@ const ManageHiring = () => {
         <div className="flex space-x-2">
         <button 
   className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition-colors"
-  onClick={() => handleAction('')}  // Access candidate ID here
+  onClick={() => handleAction()}  // Access candidate ID here
 >
   Hire
 </button>
 <button 
   className="px-3 py-1 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 transition-colors"
-  onClick={() => handleAction()}  // Access candidate ID here
+  onClick={() => handleAction('')}  // Access candidate ID here
 >
   Reject
 </button>
