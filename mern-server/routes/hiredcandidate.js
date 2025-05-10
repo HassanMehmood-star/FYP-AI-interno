@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const HiredCandidate = require('../models/HiredCandidate');
+const Internship = require('../models/InternshipProgram'); // Import your Internship model
 const authMiddleware = require('../middlewares/authMiddlewares');
 const nodemailer = require('nodemailer');
 
@@ -13,7 +14,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// POST route to hire a candidate and send email
+// POST route to hire a candidate, update internship stats, and send email
 router.post('/hired-candidates', authMiddleware, async (req, res) => {
   try {
     const { internshipId, candidate, hireDate } = req.body;
@@ -42,6 +43,21 @@ router.post('/hired-candidates', authMiddleware, async (req, res) => {
 
     await hiredCandidate.save();
 
+    // Update internship stats: decrement scheduled, increment hired
+    const internship = await Internship.findById(internshipId);
+    if (!internship) {
+      return res.status(404).json({ message: 'Internship not found' });
+    }
+
+    // Ensure stats object exists
+    internship.stats = internship.stats || { scheduled: 0, hired: 0, interested: 0, inOffer: 0 };
+    if (internship.stats.scheduled > 0) {
+      internship.stats.scheduled -= 1; // Decrement scheduled count
+    }
+    internship.stats.hired += 1; // Increment hired count
+
+    await internship.save();
+
     // Send hire email
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -58,14 +74,14 @@ router.post('/hired-candidates', authMiddleware, async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
-    res.status(201).json({ message: 'Candidate hired successfully and email sent' });
+    res.status(201).json({ message: 'Candidate hired successfully and email sent', internship });
   } catch (error) {
     console.error('Error saving hired candidate or sending email:', error);
     res.status(500).json({ message: 'Failed to hire candidate or send email' });
   }
 });
 
-// POST route to reject a candidate and send email
+// POST route to reject a candidate and send email (unchanged)
 router.post('/reject-candidate', authMiddleware, async (req, res) => {
   try {
     const { name, email } = req.body;

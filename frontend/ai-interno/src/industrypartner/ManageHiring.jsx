@@ -11,28 +11,28 @@ const ManageHiring = () => {
         console.log('Fetching assessments...');
         const token = localStorage.getItem('token');
         if (!token) {
-          console.error("No token found in localStorage. Please login first.");
+          console.error('No token found in localStorage. Please login first.');
           return;
         }
 
-        const response = await fetch("/api/assessments", {
-          method: "GET",
+        const response = await fetch('/api/assessments', {
+          method: 'GET',
           headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
         });
 
         console.log('Received response:', response);
         if (!response.ok) {
-          throw new Error("Failed to fetch assessments");
+          throw new Error('Failed to fetch assessments');
         }
 
         const data = await response.json();
         console.log('Fetched assessments data:', data);
         setAssessments(data);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error('Error fetching data:', error);
         setMessage('Failed to load assessments.');
       } finally {
         setLoading(false);
@@ -77,6 +77,21 @@ const ManageHiring = () => {
         }
 
         setMessage(result.message);
+
+        // Update assessments to reflect new stats (optional, if you want to update UI immediately)
+        setAssessments((prevAssessments) =>
+          prevAssessments.map((assess) =>
+            assess.internshipId._id === assessment.internshipId._id
+              ? {
+                  ...assess,
+                  internshipId: {
+                    ...assess.internshipId,
+                    stats: result.internship.stats, // Use updated stats from backend
+                  },
+                }
+              : assess
+          )
+        );
       } else if (action === 'reject') {
         const rejectCandidate = {
           name: candidate._doc.name,
@@ -113,7 +128,11 @@ const ManageHiring = () => {
   return (
     <div className="w-full max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-sm">
       {message && (
-        <div className={`mb-4 p-4 rounded ${message.includes('successfully') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        <div
+          className={`mb-4 p-4 rounded ${
+            message.includes('successfully') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
           {message}
         </div>
       )}
@@ -126,14 +145,22 @@ const ManageHiring = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MCQ Answers</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Candidate
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      MCQ Answers
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {assessments.map((assessment, i) => (
+                  {assessments.map((assessment, i) =>
                     assessment.candidates?.map((candidate, j) => (
                       <tr key={`${i}-${j}`} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -169,7 +196,7 @@ const ManageHiring = () => {
                         </td>
                       </tr>
                     ))
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
