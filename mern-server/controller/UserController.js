@@ -39,8 +39,8 @@ const userSignup = async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: 'gmail', // You can use any email service
       auth: {
-        user: process.env.EMAIL_USER, // Replace with environment variable for your email
-        pass: process.env.EMAIL_PASS, // Replace with environment variable for your email password
+        user: 'f219063@cfd.nu.edu.pk', // Replace with environment variable for your email
+        pass: 'jltv aeke bvyc pkyx', // Replace with environment variable for your email password
       },
     });
 
