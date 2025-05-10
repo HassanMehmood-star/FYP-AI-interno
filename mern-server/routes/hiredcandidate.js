@@ -113,4 +113,32 @@ router.post('/reject-candidate', authMiddleware, async (req, res) => {
   }
 });
 
+
+//-------------------------------//
+
+// routes/yourRoutes.js
+
+// const IndustryPartner = require('../models/IndustryPartnerDetail');  // Import IndustryPartner model
+  // Import Internship model
+
+
+
+// Example route for getting total internships by a logged-in industry partner
+router.get('/industrypartner/programs/count', authMiddleware, async (req, res) => {
+  const industryPartnerId = req.user._id; // Assuming you're getting user info from a session or token
+
+  try {
+    // Count internships created by the logged-in industry partner
+    const totalProgramsCount = await Internship.countDocuments({ createdBy: industryPartnerId });
+    res.json({
+      totalProgramsCount
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
+
+
