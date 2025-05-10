@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const HiredCandidate = require('../models/HiredCandidate');
 const authMiddleware = require('../middlewares/authMiddlewares');
-const nodemailer = require('nodemailer'); // Import NodeMailer
+const nodemailer = require('nodemailer');
 
 // Configure NodeMailer transporter
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Use Gmail service
+  service: 'gmail',
   auth: {
-    user: 'f219063@cfd.nu.edu.pk', // Your Gmail email address
-    pass: 'qgqh viyh wbrp zmeb', // Your Gmail App Password
+    user: 'f219063@cfd.nu.edu.pk',
+    pass: 'jltv aeke bvyc pkyx',
   },
 });
 
@@ -42,10 +42,10 @@ router.post('/hired-candidates', authMiddleware, async (req, res) => {
 
     await hiredCandidate.save();
 
-    // Send email to the candidate
+    // Send hire email
     const mailOptions = {
-      from: process.env.EMAIL_USER, // Sender address
-      to: candidate.email, // Recipient (candidate's email)
+      from: process.env.EMAIL_USER,
+      to: candidate.email,
       subject: 'Congratulations! You Are Hired for the Internship Program',
       html: `
         <h2>Congratulations, ${candidate.name}!</h2>
@@ -58,11 +58,42 @@ router.post('/hired-candidates', authMiddleware, async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
-
     res.status(201).json({ message: 'Candidate hired successfully and email sent' });
   } catch (error) {
     console.error('Error saving hired candidate or sending email:', error);
     res.status(500).json({ message: 'Failed to hire candidate or send email' });
+  }
+});
+
+// POST route to reject a candidate and send email
+router.post('/reject-candidate', authMiddleware, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    // Validate request body
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' });
+    }
+
+    // Send rejection email
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Update on Your Internship Application',
+      html: `
+        <h2>Dear ${name},</h2>
+        <p>Thank you for applying to our internship program.</p>
+        <p>Unfortunately, we are not going with your application at this time.</p>
+        <p>We appreciate your interest and wish you the best in your future endeavors.</p>
+        <p>Best regards,<br>Your Company Name</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: 'Rejection email sent successfully' });
+  } catch (error) {
+    console.error('Error sending rejection email:', error);
+    res.status(500).json({ message: 'Failed to send rejection email' });
   }
 });
 

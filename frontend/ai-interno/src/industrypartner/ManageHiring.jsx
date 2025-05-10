@@ -43,8 +43,6 @@ const ManageHiring = () => {
   }, []);
 
   const handleAction = async (action, assessment, candidate) => {
-    if (action !== 'hire') return; // Only handle 'hire' for now
-
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -52,35 +50,59 @@ const ManageHiring = () => {
         return;
       }
 
-      const hiredCandidate = {
-        internshipId: assessment.internshipId._id,
-        candidate: {
-          userId: candidate._doc.user,
+      if (action === 'hire') {
+        const hiredCandidate = {
+          internshipId: assessment.internshipId._id,
+          candidate: {
+            userId: candidate._doc.user,
+            name: candidate._doc.name,
+            email: candidate._doc.email,
+          },
+          hireDate: new Date().toISOString(),
+        };
+
+        const response = await fetch('/api/hired-candidates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(hiredCandidate),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to hire candidate');
+        }
+
+        setMessage(result.message);
+      } else if (action === 'reject') {
+        const rejectCandidate = {
           name: candidate._doc.name,
           email: candidate._doc.email,
-        },
-        hireDate: new Date().toISOString(),
-      };
+        };
 
-      const response = await fetch('/api/hired-candidates', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(hiredCandidate),
-      });
+        const response = await fetch('/api/reject-candidate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(rejectCandidate),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to hire candidate');
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to send rejection email');
+        }
+
+        setMessage(result.message);
       }
-
-      setMessage(result.message);
     } catch (error) {
-      console.error('Error hiring candidate:', error);
-      setMessage(error.message || 'Failed to hire candidate.');
+      console.error(`Error ${action}ing candidate:`, error);
+      setMessage(error.message || `Failed to ${action} candidate.`);
     }
   };
 
