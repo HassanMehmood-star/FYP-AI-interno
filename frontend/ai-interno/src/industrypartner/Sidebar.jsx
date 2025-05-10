@@ -190,10 +190,10 @@ const Sidebar = () => {
             {isProgramOpen && (
               <div className="flex flex-col pl-8 space-y-2 mt-2">
                 <Link
-                  to="/industrtypartnerdashboard/program/submenu1"
+                  to="/industrtypartnerdashboard/programdashboard"
                   className="flex items-center py-2 px-4 text-sm font-medium rounded-lg text-gray-300 hover:bg-[#374151] transition duration-300"
                 >
-                  Submenu 1
+                  Dashboard
                 </Link>
                 <Link
                   to="/industrtypartnerdashboard/program/submenu2"

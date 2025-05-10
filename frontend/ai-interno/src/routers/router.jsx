@@ -51,6 +51,7 @@ import UserProfileview from "../industrypartner/UserProfileview";
 import ScheduleTest from "../industrypartner/ScheduleTest";
 import TestSchedule from "../dashboardcomponents/TestSchedule";
 import ManageHiring from "../industrypartner/ManageHiring";
+import Programdashboard from "../industrypartner/Programdashboard";
 
 
 const router = createBrowserRouter([
@@ -331,6 +332,14 @@ const router = createBrowserRouter([
       {
         path:"/industrtypartnerdashboard/ScheduleTest/:internshipId",
         element: <ScheduleTest />
+      },
+      {
+        path:"/industrtypartnerdashboard/programdashboard",
+        element: <Programdashboard/>
+      },
+      {
+        path:"/industrtypartnerdashboard/managehiring",
+        element: <ManageHiring/>
       },
       {
         path:"/industrtypartnerdashboard/managehiring",
