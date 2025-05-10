@@ -139,6 +139,19 @@ router.get('/industrypartner/programs/count', authMiddleware, async (req, res) =
   }
 });
 
+
+router.get('/industrypartner/programs', authMiddleware, async (req, res) => {
+    const industryPartnerId = req.user._id; // Assuming user info is set from authentication middleware
+  
+    try {
+      const programs = await Internship.find({ createdBy: industryPartnerId }).populate('createdBy', 'name email');
+      res.json({ programs });
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
 module.exports = router;
 
 
