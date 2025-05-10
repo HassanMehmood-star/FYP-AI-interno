@@ -3,15 +3,7 @@ import { BarChart, Users, Search, Filter, ChevronDown, MoreHorizontal, Plus } fr
 
 // Mock data for programs
 const programsData = [
-  {
-    id: 1,
-    name: "Summer Coding Bootcamp",
-    category: "Technology",
-    status: "Active",
-    participants: 45,
-    startDate: "2023-06-15",
-    endDate: "2023-08-30",
-  }
+ 
 ];
 
 // Stats data
