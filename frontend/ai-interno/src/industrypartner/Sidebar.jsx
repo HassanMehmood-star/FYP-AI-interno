@@ -199,7 +199,7 @@ const Sidebar = () => {
                   to="/industrtypartnerdashboard/program/submenu2"
                   className="flex items-center py-2 px-4 text-sm font-medium rounded-lg text-gray-300 hover:bg-[#374151] transition duration-300"
                 >
-                  Submenu 2
+                  Candidateslist
                 </Link>
                 <Link
                   to="/industrtypartnerdashboard/program/submenu3"
