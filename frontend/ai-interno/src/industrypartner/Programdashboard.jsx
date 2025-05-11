@@ -231,7 +231,28 @@ const Programdashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(program.createdAt)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+
+<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleAddTask(program._id)}
+                          className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          title="Add Task"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span className="text-xs">Add Task</span>
+                        </button>
+                        {/* <button
+                          className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                          onClick={() => {}}
+                          title="More Options"
+                        >
+                          <MoreHorizontal className="h-5 w-5" />
+                        </button> */}
+                      </div>
+                    </td>
+
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="relative">
                         <button
                           className="text-gray-400 hover:text-gray-500 focus:outline-none"
@@ -240,7 +261,7 @@ const Programdashboard = () => {
                           <MoreHorizontal className="h-5 w-5" />
                         </button>
                       </div>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               )}
