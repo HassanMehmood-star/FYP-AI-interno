@@ -683,6 +683,10 @@ const checktest = require('./routes/checktest');
 
   app.use(userRoute); // Make sure this is added
 
+const taskRouter = require('./routes/Program');
+  app.use('/uploads', express.static('uploads'));
+  app.use('/api/industrypartner', taskRouter);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
