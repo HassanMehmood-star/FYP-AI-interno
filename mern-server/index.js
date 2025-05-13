@@ -687,6 +687,10 @@ const taskRouter = require('./routes/Program');
   app.use('/uploads', express.static('uploads'));
   app.use('/api/industrypartner', taskRouter);
 
+
+  const programTaskRoutes = require('./routes/programtask');
+  app.use('/api', programTaskRoutes);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
