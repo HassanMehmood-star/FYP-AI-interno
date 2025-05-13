@@ -53,6 +53,7 @@ import TestSchedule from "../dashboardcomponents/TestSchedule";
 import ManageHiring from "../industrypartner/ManageHiring";
 import Programdashboard from "../industrypartner/Programdashboard";
 import Programstatus from "../industrypartner/Programstatus";
+import ProgramPortal from "../dashboardcomponents/Programportal";
 
 
 const router = createBrowserRouter([
@@ -253,6 +254,14 @@ const router = createBrowserRouter([
         element: (
  
             <ProfileView/>
+        
+        ),
+      },
+       {
+        path: "/dashboard/ProgramPortal", 
+        element: (
+ 
+            <ProgramPortal/>
         
         ),
       },

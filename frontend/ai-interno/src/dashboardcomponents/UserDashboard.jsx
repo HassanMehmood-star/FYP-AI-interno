@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
+// Set the base URL for API requests
+// axios.defaults.baseURL = 'http://localhost:3000'; // Adjust to your backend port
+
 // Simplified Button component
 const Button = ({ children, className, ...props }) => (
   <button className={`px-4 py-2 rounded-md text-white bg-teal-500 hover:bg-teal-600 ${className}`} {...props}>
@@ -22,8 +25,7 @@ const UserDashboard = () => {
   const [testScheduled, setTestScheduled] = useState(false);
   const [userId, setUserId] = useState(null);
   const [testSchedule, setTestSchedule] = useState(null);
-  const [tasks, setTasks] = useState([]); // State for program tasks
-  const [isProgramEnrolled, setIsProgramEnrolled] = useState(false); // State for program enrollment
+  const [isProgramEnrolled, setIsProgramEnrolled] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -31,13 +33,12 @@ const UserDashboard = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          console.error("Token not found");
-          return;
+          throw new Error('Token not found');
         }
 
         const response = await axios.get('/api/getUserDetails', {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -46,47 +47,54 @@ const UserDashboard = () => {
           setUserId(response.data._id);
           console.log('User details:', response.data);
         } else {
-          console.error("No user ID returned", response.data);
+          throw new Error('No user ID returned');
         }
       } catch (error) {
         console.error('Error fetching user details:', error);
+        setError(error.message || 'Failed to fetch user details');
       }
     };
 
     fetchUserDetails();
   }, []);
 
-  const fetchInternshipDetails = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error("Token not found");
-        return;
-      }
-
-      const response = await axios.get('/api/getInternshipPreferences', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      setInternshipDetails(response.data);
-    } catch (error) {
-      console.error('Error fetching internship details:', error);
-      setInternshipDetails({});
-    }
-  };
-
   useEffect(() => {
+    const fetchInternshipDetails = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Token not found');
+        }
+
+        const response = await axios.get('/api/getInternshipPreferences', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setInternshipDetails(response.data || {});
+        console.log('Internship details:', response.data);
+      } catch (error) {
+        console.error('Error fetching internship details:', error);
+        setInternshipDetails({});
+        setError(error.message || 'Failed to fetch internship details');
+      }
+    };
+
     fetchInternshipDetails();
   }, []);
 
   useEffect(() => {
     const fetchTestSchedule = async () => {
       try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Token not found');
+        }
+
         const response = await axios.get('/api/test-details', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -100,26 +108,25 @@ const UserDashboard = () => {
         }
       } catch (error) {
         console.error('Error fetching test schedule:', error);
-        setError(error.message || 'An error occurred while fetching test schedule');
+        setError(error.message || 'Failed to fetch test schedule');
       }
     };
 
     fetchTestSchedule();
   }, []);
 
-  // Fetch tasks for hired candidate based on userId
   useEffect(() => {
     const fetchHiredCandidateTasks = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token || !userId) {
-          console.error("Token or userId not found");
+          console.error('Token or userId not found');
           return;
         }
 
         const response = await axios.get('/api/hired-candidate-tasks', {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           params: {
             userId: userId,
@@ -129,15 +136,13 @@ const UserDashboard = () => {
         console.log('Hired candidate tasks response:', response.data);
 
         if (response.data.status === 'success' && response.data.data && response.data.data.length > 0) {
-          setTasks(response.data.data);
           setIsProgramEnrolled(true);
         } else {
-          setTasks([]);
           setIsProgramEnrolled(false);
         }
       } catch (error) {
         console.error('Error fetching hired candidate tasks:', error);
-        setError(error.message || 'An error occurred while fetching tasks');
+        setError(error.message || 'Failed to fetch tasks');
         setIsProgramEnrolled(false);
       }
     };
@@ -147,12 +152,20 @@ const UserDashboard = () => {
     }
   }, [userId]);
 
+  // Safely destructure with fallbacks
   const { name = 'User' } = userDetails || {};
-  const { career = 'Not provided', startDate = 'Not provided', duration = 'Not provided', hours = 'Not provided' } = internshipDetails || {};
-  const formattedStartDate = startDate && new Date(startDate).toLocaleDateString('en-US');
+  const {
+    career = 'Not provided',
+    startDate = 'Not provided',
+    duration = 'Not provided',
+    hours = 'Not provided',
+  } = internshipDetails || {};
+  const formattedStartDate =
+    startDate && startDate !== 'Not provided' ? new Date(startDate).toLocaleDateString('en-US') : 'Not provided';
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      {error && <div className="text-red-500 mb-4">{error}</div>}
       {/* Main Profile Card */}
       <div className="bg-gray-50 p-1 rounded-xl">
         <Card className="mx-auto max-w-6xl overflow-hidden text-white !bg-teal-800">
@@ -214,14 +227,14 @@ const UserDashboard = () => {
                   )}
                 </div>
                 <button className="text-gray-500">
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 24">
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
               </div>
 
               {testScheduled && testSchedule && (
-                <div>
+                <div className="mt-4">
                   <p>Test Date: {new Date(testSchedule.testDate).toLocaleDateString()}</p>
                   <p>Test Time: {testSchedule.testTime}</p>
                 </div>
@@ -261,17 +274,9 @@ const UserDashboard = () => {
                 </button>
               </div>
 
-              {isProgramEnrolled && tasks.length > 0 ? (
+              {isProgramEnrolled ? (
                 <div className="mt-4">
-                  <h3 className="text-lg font-semibold">Assigned Tasks</h3>
-                  <ul className="mt-2 space-y-4">
-                    {tasks.map((task) => (
-                      <li key={task._id} className="border-b pb-2">
-                        <p className="font-medium text-[#0A3A3A]">{task.title}</p>
-                        <p className="text-gray-600">{task.description}</p>
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-gray-600">You are enrolled in a program. View your tasks in the Program Portal.</p>
                   <Link to="/dashboard/ProgramPortal">
                     <button className="mt-4 w-full bg-teal-500 text-white px-4 py-2 rounded-full">
                       Go to Program Portal
@@ -280,7 +285,7 @@ const UserDashboard = () => {
                 </div>
               ) : (
                 <div className="mt-4">
-                  <p className="text-gray-600">No tasks available. You are not enrolled in any program.</p>
+                  <p className="text-gray-600">You are not enrolled in any program.</p>
                   <button className="mt-4 w-full bg-red-500 text-white px-4 py-2 rounded-full cursor-not-allowed" disabled>
                     Program Not Enrolled
                   </button>
