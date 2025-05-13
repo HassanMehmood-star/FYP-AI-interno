@@ -196,16 +196,16 @@ const Sidebar = () => {
                   Dashboard
                 </Link>
                 <Link
-                  to="/industrtypartnerdashboard/program/submenu2"
+                  to="/industrtypartnerdashboard/programstatus"
                   className="flex items-center py-2 px-4 text-sm font-medium rounded-lg text-gray-300 hover:bg-[#374151] transition duration-300"
                 >
-                  Candidateslist
+                  Status
                 </Link>
                 <Link
                   to="/industrtypartnerdashboard/program/submenu3"
                   className="flex items-center py-2 px-4 text-sm font-medium rounded-lg text-gray-300 hover:bg-[#374151] transition duration-300"
                 >
-                  Submenu 3
+                  {/* Submenu 3 */}
                 </Link>
               </div>
             )}
