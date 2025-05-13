@@ -43,6 +43,11 @@ const taskSchema = new mongoose.Schema({
     type: String, // Stored as a time string (e.g., "17:00")
     required: true,
   },
+  status: {
+    type: String,
+    default: 'active', // Default value
+    enum: ['active'], // Restrict to 'active' for now
+  },
   createdAt: {
     type: Date,
     default: Date.now,

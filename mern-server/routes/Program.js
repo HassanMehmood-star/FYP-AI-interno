@@ -20,7 +20,7 @@ router.post('/tasks', authMiddleware, upload.single('file'), async (req, res) =>
     console.log('Route - industryPartnerId:', industryPartnerId); // Debug log
 
     // Extract form data
-    const { internshipId, title, description, startDay, startTime, endDay, endTime } = req.body;
+    const { internshipId, title, description, startDay, startTime, endDay, endTime, status = 'active' } = req.body;
     const file = req.file ? `/uploads/${req.file.filename}` : null;
 
     // Validate input
@@ -49,6 +49,11 @@ router.post('/tasks', authMiddleware, upload.single('file'), async (req, res) =>
       return res.status(400).json({ error: 'Invalid time format. Use HH:mm (24-hour format)' });
     }
 
+    // Validate status
+    if (!['active'].includes(status)) { // Restrict status to 'active' for now
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
     // Create task
     const task = new Task({
       industryPartnerId,
@@ -60,6 +65,7 @@ router.post('/tasks', authMiddleware, upload.single('file'), async (req, res) =>
       startTime,
       endDay,
       endTime,
+      status, // Include status in the task
       createdAt: new Date(),
       updatedAt: new Date(),
     });

@@ -306,7 +306,7 @@ const ProgramDashboard = () => {
         </div>
       </div>
 
-    {isModalOpen && (
+{isModalOpen && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto transform transition-all duration-300 ease-in-out opacity-0 scale-95" style={{ animation: 'fadeIn 0.3s forwards' }}>
       <h2 className="text-xl font-semibold mb-4">Add Task</h2>
@@ -394,6 +394,17 @@ const ProgramDashboard = () => {
             onChange={handleFileChange}
             className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
           />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
+          <input
+            type="hidden"
+            id="status"
+            name="status"
+            value="active"
+            readOnly
+          />
+          <p className="text-sm text-gray-600">Default: Active</p>
         </div>
         <div className="flex justify-end gap-2">
           <button
