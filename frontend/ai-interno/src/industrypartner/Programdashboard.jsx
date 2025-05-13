@@ -5,38 +5,45 @@ import { BarChart, Search, Filter, ChevronDown, Plus } from "lucide-react";
 const statsData = [
   {
     title: "Total Programs",
-    value: "24", // Default value, will update based on API response
+    value: "24",
     icon: <BarChart className="h-4 w-4 text-gray-500" />,
   },
 ];
 
-const Programdashboard = () => {
+const ProgramDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [totalProgramsCount, setTotalProgramsCount] = useState(0);
-  const [internshipPrograms, setInternshipPrograms] = useState([]); // Store internship programs
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal visibility
-  const [selectedProgramId, setSelectedProgramId] = useState(null); // Selected program ID
+  const [internshipPrograms, setInternshipPrograms] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProgramId, setSelectedProgramId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [taskForm, setTaskForm] = useState({
     title: "",
     description: "",
     file: null,
-  }); // Form state
-  const [isSubmitting, setIsSubmitting] = useState(false); // Submission state
+    startDay: "", // New field for start day
+    startTime: "", // New field for start time
+    endDay: "", // New field for end day
+    endTime: "", // New field for end time
+  });
+
+  // Days of the week for dropdowns
+  const daysOfWeek = [
+    "Monday", "Tuesday", "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday"
+  ];
 
   useEffect(() => {
-    // Fetch total programs count and internship programs for the logged-in industry partner
     const fetchData = async () => {
-      const token = localStorage.getItem('token'); // Get the token from localStorage
-      
+      const token = localStorage.getItem('token');
       if (!token) {
         console.error('No token found in localStorage');
         return;
       }
-      
+
       try {
-        // Fetch total programs count
         const countResponse = await fetch('/api/industrypartner/programs/count', {
           method: 'GET',
           headers: {
@@ -44,16 +51,15 @@ const Programdashboard = () => {
             'Authorization': `Bearer ${token}`,
           },
         });
-        
+
         if (!countResponse.ok) {
           console.error('Failed to fetch program count:', countResponse.statusText);
           return;
         }
-        
+
         const countData = await countResponse.json();
-        setTotalProgramsCount(countData.totalProgramsCount); // Update the count state
-        
-        // Fetch internship programs created by the logged-in industry partner
+        setTotalProgramsCount(countData.totalProgramsCount);
+
         const programsResponse = await fetch('/api/industrypartner/programs', {
           method: 'GET',
           headers: {
@@ -61,23 +67,22 @@ const Programdashboard = () => {
             'Authorization': `Bearer ${token}`,
           },
         });
-        
+
         if (!programsResponse.ok) {
           console.error('Failed to fetch programs:', programsResponse.statusText);
           return;
         }
-        
+
         const programsData = await programsResponse.json();
-        setInternshipPrograms(programsData.programs); // Update the internship programs state
+        setInternshipPrograms(programsData.programs);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
-    
-    fetchData();
-  }, []); // Empty dependency array to run once when component mounts
 
-  // Filter programs based on search term and status filter
+    fetchData();
+  }, []);
+
   const filteredPrograms = internshipPrograms.filter((program) => {
     const matchesSearch =
       program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -86,7 +91,6 @@ const Programdashboard = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Get status badge color
   const getStatusColor = (status) => {
     switch (status) {
       case "Active":
@@ -100,37 +104,31 @@ const Programdashboard = () => {
     }
   };
 
-  // Format date to readable format
   const formatDate = (dateString) => {
     const options = { year: "numeric", month: "short", day: "numeric" };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Open modal and set selected program
   const handleAddTask = (programId) => {
     setSelectedProgramId(programId);
     setIsModalOpen(true);
   };
 
-  // Close modal and reset form
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedProgramId(null);
-    setTaskForm({ title: "", description: "", file: null });
+    setTaskForm({ title: "", description: "", file: null, startDay: "", startTime: "", endDay: "", endTime: "" });
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setTaskForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle file input change
   const handleFileChange = (e) => {
     setTaskForm((prev) => ({ ...prev, file: e.target.files[0] }));
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -142,18 +140,27 @@ const Programdashboard = () => {
       return;
     }
 
-    // Prepare form data for API request
+    // Validate that start and end day/time are provided
+    if (!taskForm.startDay || !taskForm.startTime || !taskForm.endDay || !taskForm.endTime) {
+      console.error('Start day, start time, end day, and end time are required');
+      setIsSubmitting(false);
+      return;
+    }
+
     const formData = new FormData();
-    formData.append('industryPartnerId', 'industry_partner_id_from_token'); // Replace with actual ID from token/user context
+    formData.append('industryPartnerId', 'industry_partner_id_from_token');
     formData.append('internshipId', selectedProgramId);
     formData.append('title', taskForm.title);
     formData.append('description', taskForm.description);
+    formData.append('startDay', taskForm.startDay);
+    formData.append('startTime', taskForm.startTime);
+    formData.append('endDay', taskForm.endDay);
+    formData.append('endTime', taskForm.endTime);
     if (taskForm.file) {
       formData.append('file', taskForm.file);
     }
 
     try {
-      // Send task data to backend
       const response = await fetch('/api/industrypartner/tasks', {
         method: 'POST',
         headers: {
@@ -168,7 +175,6 @@ const Programdashboard = () => {
         return;
       }
 
-      // Optionally refresh programs or update UI
       console.log('Task saved successfully');
       closeModal();
     } catch (error) {
@@ -180,7 +186,6 @@ const Programdashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Program Dashboard</h1>
@@ -188,7 +193,6 @@ const Programdashboard = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="w-full max-w-screen-xl mx-auto mb-8">
         {statsData.map((stat, index) => (
           <div key={index} className="bg-white p-8 rounded-lg shadow-md w-full">
@@ -205,7 +209,6 @@ const Programdashboard = () => {
         ))}
       </div>
 
-      {/* Search and Filter */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-grow">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -229,49 +232,24 @@ const Programdashboard = () => {
           {showStatusDropdown && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
               <div className="py-1">
-                <button
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                  onClick={() => {
-                    setStatusFilter("All");
-                    setShowStatusDropdown(false);
-                  }}
-                >
-                  All
-                </button>
-                <button
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                  onClick={() => {
-                    setStatusFilter("Active");
-                    setShowStatusDropdown(false);
-                  }}
-                >
-                  Active
-                </button>
-                <button
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                  onClick={() => {
-                    setStatusFilter("Upcoming");
-                    setShowStatusDropdown(false);
-                  }}
-                >
-                  Upcoming
-                </button>
-                <button
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                  onClick={() => {
-                    setStatusFilter("Completed");
-                    setShowStatusDropdown(false);
-                  }}
-                >
-                  Completed
-                </button>
+                {["All", "Active", "Upcoming", "Completed"].map((status) => (
+                  <button
+                    key={status}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                    onClick={() => {
+                      setStatusFilter(status);
+                      setShowStatusDropdown(false);
+                    }}
+                  >
+                    {status}
+                  </button>
+                ))}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Programs Table */}
       <div className="bg-white rounded-lg shadow-md mb-8">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold">Programs</h2>
@@ -301,16 +279,12 @@ const Programdashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{program.title}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{program.department}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(program.status)}`}
-                      >
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(program.status)}`}>
                         {program.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{program.level}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(program.createdAt)}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(program.createdAt)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
                         <button
@@ -332,76 +306,116 @@ const Programdashboard = () => {
         </div>
       </div>
 
-      {/* Modal with Animation */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div
-            className="bg-white rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-in-out opacity-0 scale-95"
-            style={{ animation: 'fadeIn 0.3s forwards' }}
-          >
-            <h2 className="text-xl font-semibold mb-4">Add Task</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                  Task Title
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={taskForm.title}
-                  onChange={handleInputChange}
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Task Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={taskForm.description}
-                  onChange={handleInputChange}
-                  rows="4"
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                ></textarea>
-              </div>
-              <div className="mb-4">
-                <label htmlFor="file" className="block text-sm font-medium text-gray-700">
-                  Upload File (Optional)
-                </label>
-                <input
-                  type="file"
-                  id="file"
-                  name="file"
-                  onChange={handleFileChange}
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Task'}
-                </button>
-              </div>
-            </form>
+    {isModalOpen && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto transform transition-all duration-300 ease-in-out opacity-0 scale-95" style={{ animation: 'fadeIn 0.3s forwards' }}>
+      <h2 className="text-xl font-semibold mb-4">Add Task</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label htmlFor="title" className="block text-sm font-medium text-gray-700">Task Title</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={taskForm.title}
+            onChange={handleInputChange}
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700">Task Description</label>
+          <textarea
+            id="description"
+            name="description"
+            value={taskForm.description}
+            onChange={handleInputChange}
+            rows="4"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          ></textarea>
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Start Day and Time</label>
+          <div className="mt-2 flex gap-2">
+            <select
+              name="startDay"
+              value={taskForm.startDay}
+              onChange={handleInputChange}
+              className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="" disabled>Select Start Day</option>
+              {daysOfWeek.map((day) => (
+                <option key={day} value={day}>{day}</option>
+              ))}
+            </select>
+            <input
+              type="time"
+              name="startTime"
+              value={taskForm.startTime}
+              onChange={handleInputChange}
+              className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
           </div>
         </div>
-      )}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">End Day and Time</label>
+          <div className="mt-2 flex gap-2">
+            <select
+              name="endDay"
+              value={taskForm.endDay}
+              onChange={handleInputChange}
+              className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="" disabled>Select End Day</option>
+              {daysOfWeek.map((day) => (
+                <option key={day} value={day}>{day}</option>
+              ))}
+            </select>
+            <input
+              type="time"
+              name="endTime"
+              value={taskForm.endTime}
+              onChange={handleInputChange}
+              className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+        </div>
+        <div className="mb-4">
+          <label htmlFor="file" className="block text-sm font-medium text-gray-700">Upload File (Optional)</label>
+          <input
+            type="file"
+            id="file"
+            name="file"
+            onChange={handleFileChange}
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={closeModal}
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Saving...' : 'Save Task'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
     </div>
   );
 };
@@ -427,4 +441,4 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet);
 }
 
-export default Programdashboard;
+export default ProgramDashboard;

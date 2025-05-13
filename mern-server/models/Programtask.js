@@ -25,6 +25,24 @@ const taskSchema = new mongoose.Schema({
     type: String,
     trim: true, // URL or path to uploaded file (optional)
   },
+  startDay: {
+    type: String,
+    enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    required: true,
+  },
+  startTime: {
+    type: String, // Stored as a time string (e.g., "09:00")
+    required: true,
+  },
+  endDay: {
+    type: String,
+    enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    required: true,
+  },
+  endTime: {
+    type: String, // Stored as a time string (e.g., "17:00")
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -20,7 +20,7 @@ router.post('/tasks', authMiddleware, upload.single('file'), async (req, res) =>
     console.log('Route - industryPartnerId:', industryPartnerId); // Debug log
 
     // Extract form data
-    const { internshipId, title, description } = req.body;
+    const { internshipId, title, description, startDay, startTime, endDay, endTime } = req.body;
     const file = req.file ? `/uploads/${req.file.filename}` : null;
 
     // Validate input
@@ -33,6 +33,21 @@ router.post('/tasks', authMiddleware, upload.single('file'), async (req, res) =>
     if (!title || !description) {
       return res.status(400).json({ error: 'Title and description are required' });
     }
+    if (!startDay || !startTime || !endDay || !endTime) {
+      return res.status(400).json({ error: 'Start day, start time, end day, and end time are required' });
+    }
+
+    // Validate days of the week
+    const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    if (!validDays.includes(startDay) || !validDays.includes(endDay)) {
+      return res.status(400).json({ error: 'Invalid start or end day' });
+    }
+
+    // Validate time format (e.g., "HH:mm")
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+      return res.status(400).json({ error: 'Invalid time format. Use HH:mm (24-hour format)' });
+    }
 
     // Create task
     const task = new Task({
@@ -41,6 +56,10 @@ router.post('/tasks', authMiddleware, upload.single('file'), async (req, res) =>
       title,
       description,
       file,
+      startDay,
+      startTime,
+      endDay,
+      endTime,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
