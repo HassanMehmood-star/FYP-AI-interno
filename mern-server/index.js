@@ -697,6 +697,10 @@ app.use('/api/tasks', taskCompleteRoute);
 const uploadTaskRoute = require('./routes/uploadtask');
 app.use('/api/tasks', uploadTaskRoute);
 
+const chatRoutes = require('./routes/ChatRoutes');
+app.use('/api', chatRoutes);
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
