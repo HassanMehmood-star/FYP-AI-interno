@@ -1,35 +1,51 @@
 const express = require('express');
 const router = express.Router();
-const HiredCandidate = require('../models/HiredCandidate');
-const ProgramTask = require('../models/Programtask');
+const mongoose = require('mongoose');
+const HiredCandidate = mongoose.model('HiredCandidate');
+const ProgramTask = mongoose.model('ProgramTask');
+const authMiddleware = require('../middlewares/authMiddlewares');
 
-// Get tasks for a hired candidate
-router.get('/hired-candidate-tasks', async (req, res) => {
+router.get('/hired-candidate-tasks', authMiddleware, async (req, res) => {
   try {
-    const { userId } = req.query;
+    console.log('Request received for /hired-candidate-tasks', {
+      userId: req.query.userId,
+      user: req.user,
+      headers: req.headers.authorization,
+    });
 
+    const userId = req.query.userId || req.user?._id;
     if (!userId) {
-      return res.status(400).json({ status: 'error', message: 'userId is required' });
+      return res.status(401).json({ status: 'error', message: 'User ID not provided and no authenticated user found' });
     }
 
-    // Find hired candidate records for the user
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid user ID' });
+    }
+
+    console.log('Fetching hired records for userId:', userId);
     const hiredRecords = await HiredCandidate.find({ 'candidate.userId': userId });
+    console.log('Hired records found:', hiredRecords.length);
 
     if (!hiredRecords || hiredRecords.length === 0) {
       return res.status(200).json({ status: 'success', data: [] });
     }
 
-    // Get all internshipIds from hired records
     const internshipIds = hiredRecords.map(record => record.internshipId);
+    console.log('Internship IDs:', internshipIds);
 
-    // Find tasks where internshipId matches
     const tasks = await ProgramTask.find({ internshipId: { $in: internshipIds } })
-      .select('title description createdAt');
+      .select('title description startDate startDay startTime endDate endDay endTime status createdAt updatedAt')
+      .lean();
+    console.log('Tasks found:', tasks.length);
 
     res.status(200).json({ status: 'success', data: tasks });
   } catch (error) {
-    console.error('Error fetching hired candidate tasks:', error);
-    res.status(500).json({ status: 'error', message: 'Server error' });
+    console.error('Error fetching hired candidate tasks:', {
+      message: error.message,
+      stack: error.stack,
+      userId: req.query.userId || req.user?._id,
+    });
+    res.status(500).json({ status: 'error', message: `Server error: ${error.message}` });
   }
 });
 

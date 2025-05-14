@@ -1,9 +1,31 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import axios from "axios"
-import { Calendar, CheckCircle, Clock, FileText, User, AlertCircle, ChevronRight } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Calendar, CheckCircle, Clock, FileText, User, AlertCircle, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+// Utility function to convert 24-hour time to AM/PM format
+const formatTimeToAmPm = (time) => {
+  if (!time) return "";
+  const [hours, minutes] = time.split(":");
+  let hoursNum = parseInt(hours, 10);
+  const ampm = hoursNum >= 12 ? "PM" : "AM";
+  hoursNum = hoursNum % 12 || 12; // Convert 0 to 12 for midnight
+  return `${hoursNum}:${minutes} ${ampm}`;
+};
+
+// Utility function to format date (e.g., "May 14, 2025")
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
 
 // Simplified Card component with animation
 const Card = ({ children, className, ...props }) => (
@@ -16,40 +38,32 @@ const Card = ({ children, className, ...props }) => (
   >
     {children}
   </motion.div>
-)
+);
 
 // Task status badge component
 const StatusBadge = ({ status }) => {
   const statusConfig = {
     pending: { color: "bg-amber-100 text-amber-800 border border-amber-200", icon: <Clock className="w-3 h-3 mr-1" /> },
-    inProgress: {
-      color: "bg-blue-100 text-blue-800 border border-blue-200",
-      icon: <FileText className="w-3 h-3 mr-1" />,
-    },
+    active: { color: "bg-blue-100 text-blue-800 border border-blue-200", icon: <FileText className="w-3 h-3 mr-1" /> },
     completed: {
       color: "bg-green-100 text-green-800 border border-green-200",
       icon: <CheckCircle className="w-3 h-3 mr-1" />,
     },
-  }
+  };
 
-  const config = statusConfig[status] || statusConfig.pending
+  const config = statusConfig[status] || statusConfig.pending;
 
   return (
     <span className={`flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${config.color} shadow-sm`}>
       {config.icon}
-      {status === "pending" ? "Pending" : status === "inProgress" ? "In Progress" : "Completed"}
+      {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
-  )
-}
+  );
+};
 
 // Task card component
 const TaskCard = ({ task, onMarkComplete }) => {
-  const [expanded, setExpanded] = useState(false)
-
-  // Mock data for demonstration - in real app, this would come from the task object
-  const dueDate = new Date()
-  dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 14) + 1)
-  const status = ["pending", "inProgress", "completed"][Math.floor(Math.random() * 3)]
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <motion.div
@@ -60,9 +74,15 @@ const TaskCard = ({ task, onMarkComplete }) => {
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-[#0A3A3A]">{task.title}</h3>
-            <StatusBadge status={status} />
+            <StatusBadge status={task.status} />
           </div>
           <p className="text-gray-600 text-sm line-clamp-2 whitespace-pre-line">{task.description}</p>
+          <div className="flex items-center text-sm text-gray-500 mt-2">
+            <Calendar className="w-4 h-4 mr-1" />
+            <span>
+              {formatDate(task.startDate)} {formatTimeToAmPm(task.startTime)} - {formatDate(task.endDate)} {formatTimeToAmPm(task.endTime)}
+            </span>
+          </div>
         </div>
         <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`} />
       </div>
@@ -78,14 +98,16 @@ const TaskCard = ({ task, onMarkComplete }) => {
             <div className="p-4">
               <div className="flex items-center text-sm text-gray-500 mb-3">
                 <Calendar className="w-4 h-4 mr-1" />
-                <span>Due: {dueDate.toLocaleDateString()}</span>
+                <span>
+                  Duration: {formatDate(task.startDate)} {formatTimeToAmPm(task.startTime)} - {formatDate(task.endDate)} {formatTimeToAmPm(task.endTime)}
+                </span>
               </div>
               <p className="text-gray-700 mb-4 whitespace-pre-line">{task.description}</p>
-              {status !== "completed" && (
+              {task.status !== "completed" && (
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    onMarkComplete(task._id)
+                    e.stopPropagation();
+                    onMarkComplete(task._id);
                   }}
                   className="text-sm px-4 py-2 bg-[#0A3A3A] text-white rounded-md hover:bg-[#0c4747] transition-colors shadow-sm hover:shadow"
                 >
@@ -98,8 +120,8 @@ const TaskCard = ({ task, onMarkComplete }) => {
         )}
       </AnimatePresence>
     </motion.div>
-  )
-}
+  );
+};
 
 // Skeleton loader component
 const SkeletonLoader = () => (
@@ -115,7 +137,7 @@ const SkeletonLoader = () => (
       </div>
     ))}
   </div>
-)
+);
 
 // User info header component
 const UserHeader = ({ userName = "User" }) => (
@@ -128,87 +150,110 @@ const UserHeader = ({ userName = "User" }) => (
       <h2 className="font-bold text-[#0A3A3A]">{userName}</h2>
     </div>
   </div>
-)
+);
 
 const ProgramPortal = () => {
-  const [tasks, setTasks] = useState([])
-  const [userId, setUserId] = useState(null)
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [userName, setUserName] = useState("Candidate")
+  const [tasks, setTasks] = useState([]);
+  const [userId, setUserId] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("Candidate");
 
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
-        const token = localStorage.getItem("token")
+        const token = localStorage.getItem("token");
         if (!token) {
-          throw new Error("Token not found")
+          throw new Error("Token not found");
         }
 
         const response = await axios.get("/api/getUserDetails", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        })
+        });
 
         if (response.data && response.data._id) {
-          setUserId(response.data._id)
+          setUserId(response.data._id);
           if (response.data.name) {
-            setUserName(response.data.name)
+            setUserName(response.data.name);
           }
         } else {
-          throw new Error("No user ID returned")
+          throw new Error("No user ID returned");
         }
       } catch (error) {
-        console.error("Error fetching user details:", error)
-        setError(error.message || "Failed to fetch user details")
+        console.error("Error fetching user details:", error);
+        setError(error.message || "Failed to fetch user details");
       }
-    }
+    };
 
-    fetchUserDetails()
-  }, [])
+    fetchUserDetails();
+  }, []);
 
   useEffect(() => {
     const fetchHiredCandidateTasks = async () => {
       try {
-        const token = localStorage.getItem("token")
+        const token = localStorage.getItem("token");
         if (!token || !userId) {
-          console.error("Token or userId not found")
-          return
+          throw new Error("Token or userId not found");
         }
 
         const response = await axios.get("/api/hired-candidate-tasks", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-          params: {
-            userId: userId,
-          },
-        })
+        });
 
-        console.log("Hired candidate tasks response:", response.data)
-
-        if (response.data.status === "success" && response.data.data) {
-          setTasks(response.data.data)
+        if (response.data.status === "success") {
+          setTasks(response.data.data || []);
         } else {
-          setTasks([])
+          setTasks([]);
         }
       } catch (error) {
-        console.error("Error fetching hired candidate tasks:", error)
-        setError(error.message || "Failed to fetch tasks")
+        console.error("Error fetching hired candidate tasks:", error);
+        setError(error.message || "Failed to fetch tasks");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (userId) {
-      fetchHiredCandidateTasks()
+      fetchHiredCandidateTasks();
     }
-  }, [userId])
+  }, [userId]);
 
   const handleMarkComplete = async (taskId) => {
-    console.log(`Marking task ${taskId} as complete`)
-  }
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Token not found");
+      }
+
+      const response = await axios.patch(
+        `/api/tasks/${taskId}/complete`,
+        { status: "completed" },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        setTasks((prevTasks) =>
+          prevTasks.map((task) =>
+            task._id === taskId ? { ...task, status: "completed" } : task
+          )
+        );
+        toast.success("Task marked as complete");
+      } else {
+        throw new Error("Failed to mark task as complete");
+      }
+    } catch (error) {
+      console.error("Error marking task as complete:", error);
+      toast.error(error.message || "Failed to mark task as complete");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-4 md:p-8">
@@ -266,8 +311,9 @@ const ProgramPortal = () => {
           )}
         </div>
       </Card>
+      <ToastContainer />
     </div>
-  )
-}
+  );
+};
 
-export default ProgramPortal
+export default ProgramPortal;

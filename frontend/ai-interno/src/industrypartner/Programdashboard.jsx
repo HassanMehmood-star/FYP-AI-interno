@@ -129,60 +129,75 @@ const ProgramDashboard = () => {
     setTaskForm((prev) => ({ ...prev, file: e.target.files[0] }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('No token found');
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('No token found');
+    setIsSubmitting(false);
+    return;
+  }
+
+  // Validate required fields
+  if (!taskForm.startDate || !taskForm.startTime || !taskForm.endDate || !taskForm.endTime) {
+    console.error('Start date, start time, end date, and end time are required');
+    setIsSubmitting(false);
+    return;
+  }
+
+  // Decode token to get industryPartnerId (simplified example)
+  let industryPartnerId;
+  try {
+    const decoded = JSON.parse(atob(token.split('.')[1])); // Basic JWT decoding
+    industryPartnerId = decoded.id || decoded._id; // Adjust based on your token structure
+  } catch (error) {
+    console.error('Failed to decode token:', error);
+    setIsSubmitting(false);
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('industryPartnerId', industryPartnerId);
+  formData.append('internshipId', selectedProgramId);
+  formData.append('title', taskForm.title);
+  formData.append('description', taskForm.description);
+  formData.append('startDate', taskForm.startDate);
+  formData.append('startDay', taskForm.startDay);
+  formData.append('startTime', taskForm.startTime);
+  formData.append('endDate', taskForm.endDate);
+  formData.append('endDay', taskForm.endDay);
+  formData.append('endTime', taskForm.endTime);
+  formData.append('status', 'active');
+  if (taskForm.file) {
+    formData.append('file', taskForm.file);
+  }
+
+  try {
+    const response = await fetch('/api/industrypartner/tasks', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json(); // Get detailed error from backend
+      console.error('Failed to save task:', errorData.error || response.statusText);
       setIsSubmitting(false);
       return;
     }
 
-    // Validate that start and end day/time are provided
-    if (!taskForm.startDay || !taskForm.startTime || !taskForm.endDay || !taskForm.endTime) {
-      console.error('Start day, start time, end day, and end time are required');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('industryPartnerId', 'industry_partner_id_from_token');
-    formData.append('internshipId', selectedProgramId);
-    formData.append('title', taskForm.title);
-    formData.append('description', taskForm.description);
-    formData.append('startDay', taskForm.startDay);
-    formData.append('startTime', taskForm.startTime);
-    formData.append('endDay', taskForm.endDay);
-    formData.append('endTime', taskForm.endTime);
-    if (taskForm.file) {
-      formData.append('file', taskForm.file);
-    }
-
-    try {
-      const response = await fetch('/api/industrypartner/tasks', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        console.error('Failed to save task:', response.statusText);
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log('Task saved successfully');
-      closeModal();
-    } catch (error) {
-      console.error('Error saving task:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    console.log('Task saved successfully');
+    closeModal();
+  } catch (error) {
+    console.error('Error saving task:', error);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -336,20 +351,21 @@ const ProgramDashboard = () => {
           ></textarea>
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Start Day and Time</label>
+          <label className="block text-sm font-medium text-gray-700">Start Date and Time</label>
           <div className="mt-2 flex gap-2">
-            <select
-              name="startDay"
-              value={taskForm.startDay}
-              onChange={handleInputChange}
+            <input
+              type="date"
+              name="startDate"
+              value={taskForm.startDate}
+              onChange={(e) => {
+                const date = new Date(e.target.value)
+                const dayName = date.toLocaleString("en-US", { weekday: "long" })
+                handleInputChange({ target: { name: "startDay", value: dayName } })
+                handleInputChange(e)
+              }}
               className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-            >
-              <option value="" disabled>Select Start Day</option>
-              {daysOfWeek.map((day) => (
-                <option key={day} value={day}>{day}</option>
-              ))}
-            </select>
+            />
             <input
               type="time"
               name="startTime"
@@ -359,22 +375,26 @@ const ProgramDashboard = () => {
               required
             />
           </div>
+          {taskForm.startDay && (
+            <p className="mt-1 text-sm text-gray-600">Day: {taskForm.startDay}</p>
+          )}
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">End Day and Time</label>
+          <label className="block text-sm font-medium text-gray-700">End Date and Time</label>
           <div className="mt-2 flex gap-2">
-            <select
-              name="endDay"
-              value={taskForm.endDay}
-              onChange={handleInputChange}
+            <input
+              type="date"
+              name="endDate"
+              value={taskForm.endDate}
+              onChange={(e) => {
+                const date = new Date(e.target.value)
+                const dayName = date.toLocaleString("en-US", { weekday: "long" })
+                handleInputChange({ target: { name: "endDay", value: dayName } })
+                handleInputChange(e)
+              }}
               className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-            >
-              <option value="" disabled>Select End Day</option>
-              {daysOfWeek.map((day) => (
-                <option key={day} value={day}>{day}</option>
-              ))}
-            </select>
+            />
             <input
               type="time"
               name="endTime"
@@ -384,6 +404,9 @@ const ProgramDashboard = () => {
               required
             />
           </div>
+          {taskForm.endDay && (
+            <p className="mt-1 text-sm text-gray-600">Day: {taskForm.endDay}</p>
+          )}
         </div>
         <div className="mb-4">
           <label htmlFor="file" className="block text-sm font-medium text-gray-700">Upload File (Optional)</label>
