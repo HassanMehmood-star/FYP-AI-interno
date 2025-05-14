@@ -29,6 +29,8 @@ const internshipRoutes = require('./routes/internshiproute');
 const SelectedCandidates = require('./models/SelectedCandidates');
 const selectedCandidatesRoutes= require('./routes/selectedcandidatesroutes');
 const recommendationRoutes = require('./routes/recommendationroute');
+const recommendation = require('./routes/fetching-internship');
+
 
 // Configure CORS middleware once
 app.use(cors({
@@ -700,6 +702,9 @@ app.use('/api/tasks', uploadTaskRoute);
 const chatRoutes = require('./routes/ChatRoutes');
 app.use('/api', chatRoutes);
 
+
+const internshipRecommendationRoutes = require('./routes/fetching-internship');
+app.use('/api/routes', internshipRecommendationRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

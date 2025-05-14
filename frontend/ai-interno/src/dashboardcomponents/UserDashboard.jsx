@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import InternshipRecommendations from './InternshipRecommendations';
 
 // Set the base URL for API requests
 // axios.defaults.baseURL = 'http://localhost:3000'; // Adjust to your backend port
@@ -317,6 +318,8 @@ const UserDashboard = () => {
           </div>
         </Card>
       </div>
+
+      <InternshipRecommendations />
     </div>
   );
 };

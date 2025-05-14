@@ -6,7 +6,8 @@ const authMiddleware = async (req, res, next) => {
     try {
       const token = req.header('Authorization')?.replace('Bearer ', '');
       console.log('Auth Middleware - Token Received:', token);
-  
+  console.log('Authorization Header:', req.header('Authorization')); // This logs the full header
+  console.log('Token:', token); // This logs the token after replacing 'Bearer '
       if (!token) {
         console.error('Auth Middleware - No Token Provided');
         return res.status(401).json({ error: 'No token, authorization denied' });
