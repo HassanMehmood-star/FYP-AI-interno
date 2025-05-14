@@ -38,17 +38,71 @@ router.get('/chat-groups/:internshipId', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/chat-groups', authMiddleware, async (req, res) => {
+router.get("/chat-groups", authMiddleware, async (req, res) => {
   try {
-    const hiredCandidates = await HiredCandidate.find({ 'candidate.userId': req.user._id });
-    const internshipIds = hiredCandidates.map(hc => hc.internshipId);
-    const chatGroups = await ChatGroup.find({ internshipId: { $in: internshipIds } });
-    res.json(chatGroups);
+    console.log("GET /api/chat-groups - Starting for user ID:", req.user.id)
+
+    // Step 1: Find HiredCandidate records for the authenticated user
+    const hiredCandidates = await HiredCandidate.find({ "candidate.userId": req.user.id })
+    console.log("GET /api/chat-groups - HiredCandidates found:", hiredCandidates.length, hiredCandidates)
+
+    if (!hiredCandidates.length) {
+      console.log("GET /api/chat-groups - No hired candidates found, returning empty array")
+      return res.json([])
+    }
+
+    // Step 2: Get unique internshipIds
+    const internshipIds = [...new Set(hiredCandidates.map(hc => hc.internshipId.toString()))]
+    console.log("GET /api/chat-groups - Unique internship IDs:", internshipIds)
+
+    // Step 3: Create or update ChatGroups for each internshipId
+    const chatGroups = []
+    for (const internshipId of internshipIds) {
+      // Find all HiredCandidates for this internshipId
+      const allHiredForInternship = await HiredCandidate.find({ internshipId })
+      console.log(
+        `GET /api/chat-groups - HiredCandidates for internship ${internshipId}:`,
+        allHiredForInternship.length,
+        allHiredForInternship
+      )
+
+      // Prepare members array
+      const members = allHiredForInternship.map(hc => ({
+        userId: hc.candidate.userId,
+        name: hc.candidate.name,
+      }))
+
+      // Check if a ChatGroup exists
+      let chatGroup = await ChatGroup.findOne({ internshipId })
+      if (!chatGroup) {
+        // Create new ChatGroup
+        chatGroup = new ChatGroup({
+          internshipId,
+          name: `Internship Group ${internshipId.slice(-6)}`,
+          members,
+        })
+        await chatGroup.save()
+        console.log(`GET /api/chat-groups - Created ChatGroup for internship ${internshipId}:`, chatGroup)
+      } else {
+        // Update existing ChatGroup
+        chatGroup.members = members
+        await chatGroup.save()
+        console.log(`GET /api/chat-groups - Updated ChatGroup for internship ${internshipId}:`, chatGroup)
+      }
+
+      chatGroups.push(chatGroup)
+    }
+
+    console.log("GET /api/chat-groups - Final response:", chatGroups.length, chatGroups)
+    res.json(chatGroups)
   } catch (error) {
-    console.error('Error in GET /chat-groups:', error);
-    res.status(500).json({ error: error.message });
+    console.error("GET /api/chat-groups - Error:", {
+      message: error.message,
+      stack: error.stack,
+    })
+    res.status(500).json({ error: error.message })
   }
-});
+})
 
 router.get('/chat-groups/:chatGroupId/messages', authMiddleware, async (req, res) => {
   try {

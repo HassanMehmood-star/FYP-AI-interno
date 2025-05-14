@@ -30,59 +30,105 @@ const Internchat = () => {
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  // Mock JWT token (replace with actual token from auth system)
-  const JWT_TOKEN = "your_jwt_token"
+  // Retrieve JWT token from localStorage
+  const JWT_TOKEN = localStorage.getItem("token") || ""
+  console.log("JWT local Token found :", JWT_TOKEN)
+
+  // Check authentication status
+  useEffect(() => {
+    if (JWT_TOKEN) {
+      setIsAuthenticated(true)
+    } else {
+      setIsAuthenticated(false)
+      console.error("No JWT token found. Please log in.")
+      // Redirect to login page (e.g., using react-router-dom)
+      // window.location.href = "/login"
+    }
+  }, [JWT_TOKEN])
 
   // Fetch current user
   useEffect(() => {
     const fetchCurrentUser = async () => {
+      if (!JWT_TOKEN) return
       try {
-        // Replace with actual API call to get authenticated user
-        // For demo, using mock data
+        const response = await axios.get("http://localhost:5000/api/autho/me", {
+          headers: { Authorization: `Bearer ${JWT_TOKEN}` },
+        })
         setCurrentUser({
-          id: "user_id_from_jwt",
-          name: "Alice Johnson",
-          avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+          id: response.data.id,
+          name: response.data.name,
+          avatar: response.data.avatar || "https://randomuser.me/api/portraits/men/44.jpg",
         })
       } catch (error) {
         console.error("Error fetching current user:", error)
+        if (error.response?.status === 401) {
+          localStorage.removeItem("jwt_token")
+          setIsAuthenticated(false)
+          setCurrentUser(null)
+          // Redirect to login page
+          // window.location.href = "/login"
+        }
       }
     }
     fetchCurrentUser()
-  }, [])
+  }, [JWT_TOKEN])
 
   // Fetch chat groups
-  useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/chat-groups", {
-          headers: { Authorization: `Bearer ${JWT_TOKEN}` },
-        })
-        setGroups(
-          response.data.map(group => ({
-            id: group._id,
-            name: group.name,
-            members: group.members,
-            unread: 0, // Backend doesn't provide unread count; implement if needed
-          }))
-        )
-        if (response.data.length > 0) {
-          setActiveGroup(response.data[0]._id)
-        }
-      } catch (error) {
-        console.error("Error fetching groups:", error)
+ useEffect(() => {
+  const fetchGroups = async () => {
+    if (!JWT_TOKEN) {
+      console.log("fetchGroups: No JWT token found, skipping request")
+      return
+    }
+    console.log("fetchGroups: Initiating GET /api/chat-groups with token:", JWT_TOKEN)
+    try {
+      const response = await axios.get("http://localhost:5000/api/chat-groups", {
+        headers: { Authorization: `Bearer ${JWT_TOKEN}` },
+      })
+      console.log("fetchGroups: Response received:", response.data)
+      setGroups(
+        response.data.map(group => ({
+          id: group._id,
+          name: group.name,
+          members: group.members,
+          unread: 0,
+        }))
+      )
+      if (response.data.length > 0) {
+        console.log("fetchGroups: Setting active group to:", response.data[0]._id)
+        setActiveGroup(response.data[0]._id)
+      } else {
+        console.log("fetchGroups: No groups found in response")
+      }
+    } catch (error) {
+      console.error("fetchGroups: Error fetching groups:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      })
+      if (error.response?.status === 401) {
+        console.log("fetchGroups: Unauthorized (401), clearing token and redirecting")
+        localStorage.removeItem("token") // Fixed from "jwt_token" to "token"
+        setIsAuthenticated(false)
+        setCurrentUser(null)
+        // Redirect to login page
+        // window.location.href = "/login"
       }
     }
-    fetchGroups()
-  }, [])
+  }
+  console.log("fetchGroups: useEffect triggered")
+  fetchGroups()
+}, [JWT_TOKEN])
+
 
   // Fetch messages and poll for updates
   useEffect(() => {
-    if (activeGroup && currentUser) {
+    if (activeGroup && currentUser && JWT_TOKEN) {
       const fetchMessages = async () => {
         try {
           const response = await axios.get(
@@ -99,8 +145,8 @@ const Internchat = () => {
               sender: {
                 id: msg.sender.userId,
                 name: msg.sender.name,
-                avatar: "/placeholder.svg", // Replace with actual avatar if available
-                status: "online", // Backend doesn't provide status; implement if needed
+                avatar: msg.sender.avatar || "/placeholder.svg",
+                status: "online",
               },
               reactions: msg.reactions.map(r => r.reaction),
               timestamp: new Date(msg.timestamp).toLocaleTimeString([], {
@@ -112,15 +158,20 @@ const Internchat = () => {
           }))
         } catch (error) {
           console.error("Error fetching messages:", error)
+          if (error.response?.status === 401) {
+            localStorage.removeItem("jwt_token")
+            setIsAuthenticated(false)
+            setCurrentUser(null)
+            // Redirect to login page
+            // window.location.href = "/login"
+          }
         }
       }
       fetchMessages()
-
-      // Poll for new messages every 5 seconds
       const interval = setInterval(fetchMessages, 5000)
       return () => clearInterval(interval)
     }
-  }, [activeGroup, currentUser])
+  }, [activeGroup, currentUser, JWT_TOKEN])
 
   // Check if on mobile
   useEffect(() => {

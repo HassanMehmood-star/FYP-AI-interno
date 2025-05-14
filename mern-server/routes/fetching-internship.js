@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const UserDetails = require('../models/UserDetails'); // UserDetails model where skills are stored
 const Internship = require('../models/InternshipProgram');
+const axios = require('axios'); // Axios for making requests to Gemini API
+
+// Define the Gemini API URL and API Key (ensure your API Key is set in environment variables)
+const GEMINI_API_URL = 'https://api.gemini.com/recommend_internships'; // Replace with Gemini API URL
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBFbCOxUq-ThHD_GiuUt_s3tAjvDogQJXk";  // Make sure your Gemini API key is set in the environment variables
 
 // This route will fetch recommended internships based on user's skills
 router.get('/recommend-internships', async (req, res) => {
@@ -38,26 +43,58 @@ router.get('/recommend-internships', async (req, res) => {
 
     console.log('User skills:', userSkills);
 
-    // Fetch internships and return their title and skillInternWillLearn field
-    const internships = await Internship.find({}).select('title skillInternWillLearn');
+    // Make a request to Gemini API for internship recommendations based on user's skills
+    try {
+      const response = await axios.post(GEMINI_API_URL, {
+        skills: userSkills
+      }, {
+        headers: {
+          'Authorization': `Bearer ${GEMINI_API_KEY}`,
+        },
+      });
 
-    // If no internships are found, return an empty list with a message
-    if (!internships.length) {
+      // Check if the response is valid
+      if (response.status === 200 && response.data.recommended_internships) {
+        // Process the response and send it back
+        const recommendedInternships = response.data.recommended_internships;
+
+        if (recommendedInternships.length === 0) {
+          return res.status(200).json({
+            message: 'No internships found based on your skills.',
+            internships: [],
+          });
+        }
+
+        // Return the recommended internships from Gemini API
+        return res.status(200).json({
+          message: 'Recommended internships fetched successfully from Gemini API',
+          internships: recommendedInternships,
+        });
+      } else {
+        throw new Error('Error fetching data from Gemini API');
+      }
+    } catch (geminiError) {
+      console.error('Error with Gemini API:', geminiError.message);
+
+      // Fallback: If Gemini API fails, fetch local internships
+      const internships = await Internship.find({}).select('title skillInternWillLearn');
+
+      if (!internships.length) {
+        return res.status(200).json({
+          message: 'No internships found locally.',
+          internships: [],
+        });
+      }
+
+      // Return local internships as a fallback
       return res.status(200).json({
-        message: 'No internships found.',
-        internships: [],
+        message: 'Internships fetched successfully from local database as fallback',
+        internships: internships.map(internship => ({
+          title: internship.title,
+          skillInternWillLearn: internship.skillInternWillLearn,
+        })),
       });
     }
-
-    // Return both user skills and internships skillInternWillLearn to the frontend separately
-    res.status(200).json({
-      message: 'Internships and skills fetched successfully',
-      userSkills,
-      internships: internships.map(internship => ({
-        title: internship.title,
-        skillInternWillLearn: internship.skillInternWillLearn,
-      })),
-    });
   } catch (error) {
     console.error('Error fetching internships by skills:', error.message, error.stack);
     

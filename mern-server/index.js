@@ -703,8 +703,12 @@ const chatRoutes = require('./routes/ChatRoutes');
 app.use('/api', chatRoutes);
 
 
-const internshipRecommendationRoutes = require('./routes/fetching-internship');
-app.use('/api/routes', internshipRecommendationRoutes);
+// const internshipRecommendationRoutes = require('./routes/fetching-internship');
+// app.use('/api/routes', internshipRecommendationRoutes);
+
+
+const authRoutes = require("./routes/autho");
+app.use("/api/autho", authRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
