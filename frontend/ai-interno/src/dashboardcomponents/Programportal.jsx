@@ -13,7 +13,7 @@ const formatTimeToAmPm = (time) => {
   const [hours, minutes] = time.split(":");
   let hoursNum = parseInt(hours, 10);
   const ampm = hoursNum >= 12 ? "PM" : "AM";
-  hoursNum = hoursNum % 12 || 12; // Convert 0 to 12 for midnight
+  hoursNum = hoursNum % 12 || 12;
   return `${hoursNum}:${minutes} ${ampm}`;
 };
 
@@ -25,6 +25,17 @@ const formatDate = (dateString) => {
     month: "long",
     day: "numeric",
   });
+};
+
+// Utility function to check if task should be displayed
+const shouldDisplayTask = (task) => {
+  if (!task.startDate || !task.startTime) return false;
+  const currentTime = new Date();
+  const [hours, minutes] = task.startTime.split(":").map(Number);
+  const taskStart = new Date(task.startDate);
+  taskStart.setHours(hours, minutes, 0, 0);
+
+  return currentTime >= taskStart;
 };
 
 // Simplified Card component with animation
@@ -80,7 +91,7 @@ const TaskCard = ({ task, onMarkComplete }) => {
           <div className="flex items-center text-sm text-gray-500 mt-2">
             <Calendar className="w-4 h-4 mr-1" />
             <span>
-              {formatDate(task.startDate)} {formatTimeToAmPm(task.startTime)} - {formatDate(task.endDate)} {formatTimeToAmPm(task.endTime)}
+              {formatDate(task.startDate)} {task.startDay} {formatTimeToAmPm(task.startTime)} - {formatDate(task.endDate)} {task.endDay} {formatTimeToAmPm(task.endTime)}
             </span>
           </div>
         </div>
@@ -99,7 +110,7 @@ const TaskCard = ({ task, onMarkComplete }) => {
               <div className="flex items-center text-sm text-gray-500 mb-3">
                 <Calendar className="w-4 h-4 mr-1" />
                 <span>
-                  Duration: {formatDate(task.startDate)} {formatTimeToAmPm(task.startTime)} - {formatDate(task.endDate)} {formatTimeToAmPm(task.endTime)}
+                  Duration: {formatDate(task.startDate)} {task.startDay} {formatTimeToAmPm(task.startTime)} - {formatDate(task.endDate)} {task.endDay} {formatTimeToAmPm(task.endTime)}
                 </span>
               </div>
               <p className="text-gray-700 mb-4 whitespace-pre-line">{task.description}</p>
@@ -153,7 +164,8 @@ const UserHeader = ({ userName = "User" }) => (
 );
 
 const ProgramPortal = () => {
-  const [tasks, setTasks] = useState([]);
+  const [allTasks, setAllTasks] = useState([]);
+  const [displayedTasks, setDisplayedTasks] = useState([]);
   const [userId, setUserId] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -183,7 +195,8 @@ const ProgramPortal = () => {
         }
       } catch (error) {
         console.error("Error fetching user details:", error);
-        setError(error.message || "Failed to fetch user details");
+        setError(error.response?.data?.message || error.message || "Failed to fetch user details");
+        toast.error(error.response?.data?.message || error.message || "Failed to fetch user details");
       }
     };
 
@@ -194,6 +207,7 @@ const ProgramPortal = () => {
     const fetchHiredCandidateTasks = async () => {
       try {
         const token = localStorage.getItem("token");
+        console.log('Fetching tasks with token:', token?.slice(0, 20) + '...');
         if (!token || !userId) {
           throw new Error("Token or userId not found");
         }
@@ -205,13 +219,22 @@ const ProgramPortal = () => {
         });
 
         if (response.data.status === "success") {
-          setTasks(response.data.data || []);
+          console.log('Tasks received:', response.data.data);
+          setAllTasks(response.data.data || []);
         } else {
-          setTasks([]);
+          console.warn('Unexpected response:', response.data);
+          setAllTasks([]);
+          throw new Error(response.data.message || "Failed to fetch tasks");
         }
       } catch (error) {
-        console.error("Error fetching hired candidate tasks:", error);
-        setError(error.message || "Failed to fetch tasks");
+        console.error("Error fetching hired candidate tasks:", {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+        const errorMessage = error.response?.data?.message || error.message || "Failed to fetch tasks";
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -221,6 +244,23 @@ const ProgramPortal = () => {
       fetchHiredCandidateTasks();
     }
   }, [userId]);
+
+  // Update displayed tasks based on current time
+  useEffect(() => {
+    const updateDisplayedTasks = () => {
+      const tasksToDisplay = allTasks.filter(task => shouldDisplayTask(task));
+      setDisplayedTasks(tasksToDisplay);
+    };
+
+    // Initial update
+    updateDisplayedTasks();
+
+    // Update every minute
+    const interval = setInterval(updateDisplayedTasks, 60 * 1000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, [allTasks]);
 
   const handleMarkComplete = async (taskId) => {
     try {
@@ -240,7 +280,7 @@ const ProgramPortal = () => {
       );
 
       if (response.data.status === "success") {
-        setTasks((prevTasks) =>
+        setAllTasks((prevTasks) =>
           prevTasks.map((task) =>
             task._id === taskId ? { ...task, status: "completed" } : task
           )
@@ -251,7 +291,7 @@ const ProgramPortal = () => {
       }
     } catch (error) {
       console.error("Error marking task as complete:", error);
-      toast.error(error.message || "Failed to mark task as complete");
+      toast.error(error.response?.data?.message || error.message || "Failed to mark task as complete");
     }
   };
 
@@ -275,7 +315,7 @@ const ProgramPortal = () => {
               <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
               <p className="text-red-700">{error}</p>
             </div>
-          ) : tasks.length > 0 ? (
+          ) : displayedTasks.length > 0 ? (
             <div className="bg-gradient-to-br from-[#f0f7f7] to-white p-5 rounded-xl border border-[#0A3A3A]/10 shadow-inner">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[#0A3A3A] flex items-center">
@@ -283,17 +323,17 @@ const ProgramPortal = () => {
                   Your Assigned Tasks
                 </h2>
                 <div className="text-sm bg-[#0A3A3A]/10 px-3 py-1 rounded-full text-[#0A3A3A] font-medium">
-                  {tasks.length} tasks
+                  {displayedTasks.length} tasks
                 </div>
               </div>
-
+              <p className="text-sm text-gray-600 mb-4">Task will display on start time and date</p>
               <motion.div
                 className="space-y-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ staggerChildren: 0.1 }}
               >
-                {tasks.map((task) => (
+                {displayedTasks.map((task) => (
                   <TaskCard key={task._id} task={task} onMarkComplete={handleMarkComplete} />
                 ))}
               </motion.div>
@@ -305,7 +345,9 @@ const ProgramPortal = () => {
               </div>
               <h3 className="text-lg font-medium text-[#0A3A3A] mb-2">No Tasks Available</h3>
               <p className="text-gray-500 max-w-md mx-auto">
-                You don't have any assigned tasks at the moment. Check back later or contact your program manager.
+                {allTasks.length > 0
+                  ? "Tasks will display on their start time and date. Check back at the scheduled time."
+                  : "You don't have any assigned tasks at the moment. Check back later or contact your program manager."}
               </p>
             </div>
           )}
