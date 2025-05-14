@@ -1,38 +1,48 @@
 const express = require('express');
 const router = express.Router();
-const UserDetails = require('../models/UserDetails'); // UserDetails model where skills are stored
+const UserDetails = require('../models/UserDetails');
 const Internship = require('../models/InternshipProgram');
-const axios = require('axios'); // Axios for making requests to Gemini API
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Define the Gemini API URL and API Key (ensure your API Key is set in environment variables)
-const GEMINI_API_URL = 'https://api.gemini.com/recommend_internships'; // Replace with Gemini API URL
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBFbCOxUq-ThHD_GiuUt_s3tAjvDogQJXk";  // Make sure your Gemini API key is set in the environment variables
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = 'gemini-1.5-flash';
 
-// This route will fetch recommended internships based on user's skills
+// GET /recommend-internships: Fetch recommended internships based on user's skills
 router.get('/recommend-internships', async (req, res) => {
   try {
-    // Get userId from request header 'x-user-id' (client retrieves this from localStorage)
+    // Validate API Key
+    if (!GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY is not set in environment variables');
+      return res.status(500).json({
+        error: 'Server configuration error: Missing Gemini API key',
+      });
+    }
+
+    // Get userId from request header 'x-user-id'
     const userId = req.headers['x-user-id'];
     console.log('Fetching skills for user:', userId);
-    
+
     // Validate userId
     if (!userId) {
       console.error('No userId provided in request headers');
-      return res.status(400).json({ error: 'User ID is required in x-user-id header' });
+      return res.status(400).json({
+        error: 'User ID is required in x-user-id header',
+      });
     }
 
-    // Find the user details by userId in the UserDetails collection
-    const userDetails = await UserDetails.findOne({ userId }); // Fetch based on the userId field in UserDetails
-
+    // Find user details by userId
+    const userDetails = await UserDetails.findOne({ userId });
     if (!userDetails) {
-      console.error('User details not found for userId:', userId);
-      return res.status(404).json({ error: 'User details not found' });
+      console.log('User details not found for userId:', userId);
+      return res.status(200).json({
+        message: 'No user details found. Please complete your profile.',
+        internships: [],
+      });
     }
 
-    // Get the user's skills from UserDetails
+    // Get user's skills directly from UserDetails without normalizing
     const userSkills = userDetails.skills || [];
-    
-    // If no skills are found, return a message with an empty list of internships
+
     if (!userSkills.length) {
       console.log('No skills found for user:', userId);
       return res.status(200).json({
@@ -43,75 +53,122 @@ router.get('/recommend-internships', async (req, res) => {
 
     console.log('User skills:', userSkills);
 
-    // Make a request to Gemini API for internship recommendations based on user's skills
+    // Initialize Google Generative AI
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+
+    // Construct a contextual prompt for Gemini
+    const contextualPrompt = `
+      User Skills: ${userSkills.join(', ')}
+      Task: Recommend internships based on the user's skills. Return a JSON array of objects, each with "title" (string) and "requiredSkills" (array of strings) fields. The internships should be relevant to the user's skills. If no relevant internships are found, return an empty array.
+      
+      Example response format:
+      [
+        { "title": "Backend Developer Intern", "requiredSkills": ["Java", "Spring Boot"] },
+        { "title": "Data Science Intern", "requiredSkills": ["Python", "Pandas"] }
+      ]
+      
+      Ensure the response is concise, relevant, and in valid JSON format.
+    `;
+
     try {
-      const response = await axios.post(GEMINI_API_URL, {
-        skills: userSkills
-      }, {
-        headers: {
-          'Authorization': `Bearer ${GEMINI_API_KEY}`,
-        },
-      });
+      // Generate response from Gemini AI
+      const result = await model.generateContent(contextualPrompt);
 
-      // Check if the response is valid
-      if (response.status === 200 && response.data.recommended_internships) {
-        // Process the response and send it back
-        const recommendedInternships = response.data.recommended_internships;
+      // Validate API response
+      if (!result || !result.response) {
+        console.error('Invalid response from Gemini API');
+        throw new Error('Invalid response from Gemini API');
+      }
 
-        if (recommendedInternships.length === 0) {
-          return res.status(200).json({
-            message: 'No internships found based on your skills.',
-            internships: [],
-          });
+      // Extract and log AI-generated text
+      const generatedText = result.response.text();
+      console.log('Raw response from Gemini API:', generatedText); // Log the raw response to inspect it
+
+      // Clean up the response (if necessary) to remove any unwanted characters like backticks, markdown, etc.
+      const sanitizedResponse = generatedText.replace(/```json|```/g, '').trim();
+
+      let recommendedInternships;
+      try {
+        recommendedInternships = JSON.parse(sanitizedResponse);
+        if (!Array.isArray(recommendedInternships)) {
+          throw new Error('Gemini API response is not an array');
         }
-
-        // Return the recommended internships from Gemini API
-        return res.status(200).json({
-          message: 'Recommended internships fetched successfully from Gemini API',
-          internships: recommendedInternships,
-        });
-      } else {
-        throw new Error('Error fetching data from Gemini API');
+      } catch (parseError) {
+        console.error('Failed to parse Gemini API response:', parseError.message);
+        throw new Error('Invalid response format from Gemini API');
       }
-    } catch (geminiError) {
-      console.error('Error with Gemini API:', geminiError.message);
 
-      // Fallback: If Gemini API fails, fetch local internships
-      const internships = await Internship.find({}).select('title skillInternWillLearn');
-
-      if (!internships.length) {
+      // Handle empty or valid response
+      if (recommendedInternships.length === 0) {
         return res.status(200).json({
-          message: 'No internships found locally.',
+          message: 'No internships found based on your skills.',
           internships: [],
+          source: 'gemini',
         });
       }
 
-      // Return local internships as a fallback
       return res.status(200).json({
-        message: 'Internships fetched successfully from local database as fallback',
-        internships: internships.map(internship => ({
-          title: internship.title,
-          skillInternWillLearn: internship.skillInternWillLearn,
-        })),
+        message: 'Recommended internships fetched successfully from Gemini API',
+        internships: recommendedInternships,
+        source: 'gemini',
       });
+    } catch (geminiError) {
+      console.error('Gemini API error:', geminiError.message);
+
+      // Fallback: Fetch local internships with skill matching
+    //   const internships = await Internships.find({
+    //     skillInternWillLearn: { $in: userSkills },
+    //   }).select('title skillInternWillLearn');
+
+    //   // Rank internships by matching skills with safety checks for missing fields
+    //   const rankedInternships = internship.map(internship => {
+    //     // Ensure skillInternWillLearn is defined as an array
+    //     if (!Array.isArray(internship.skillInternWillLearn)) {
+    //       internship.skillInternWillLearn = []; // Default to an empty array if missing or not an array
+    //     }
+
+    //     const matchScore = internship.skillInternWillLearn.filter(skill =>
+    //       userSkills.includes(skill) // Match each skill in internship.skillInternWillLearn to the user's skills
+    //     ).length;
+
+    //     return {
+    //       title: internship.title,
+    //       skillInternWillLearn: internship.skillInternWillLearn,
+    //       matchScore,
+    //     };
+    //   }).sort((a, b) => b.matchScore - a.matchScore); // Sort by match score, highest first
+
+    //   // Skill gap analysis
+    //   const internshipSkills = new Set(internships.flatMap(i => i.skillInternWillLearn));
+    //   const missingSkills = [...internshipSkills].filter(skill => !userSkills.includes(skill));
+
+    //   return res.status(200).json({
+    //     message: 'Failed to fetch from Gemini API. Using local database as fallback.',
+    //     internships: rankedInternships,
+    //     skillGaps: missingSkills,
+    //     suggestion: missingSkills.length ? `Consider learning: ${missingSkills.join(', ')}` : 'Your skills are well-aligned!',
+    //     source: 'local',
+    //   });
     }
   } catch (error) {
-    console.error('Error fetching internships by skills:', error.message, error.stack);
-    
-    // Handle specific error types
+    console.error('Error fetching internships:', error.message, error.stack);
     if (error.name === 'CastError') {
       return res.status(400).json({ error: 'Invalid user ID format' });
     }
     if (error.name === 'MongoServerError') {
       return res.status(503).json({ error: 'Database error', details: error.message });
     }
-    
-    // Generic server error
-    res.status(500).json({
+    return res.status(500).json({
       error: 'An error occurred while fetching internships',
       details: error.message,
     });
   }
 });
+
+
+
+
+
 
 module.exports = router;

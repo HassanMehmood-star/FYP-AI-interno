@@ -319,7 +319,7 @@ const UserDashboard = () => {
         </Card>
       </div>
 
-      <InternshipRecommendations />
+      {/* <InternshipRecommendations /> */}
     </div>
   );
 };

@@ -555,7 +555,7 @@ import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom'; // Add useLocation
 import { Search, ChevronDown, Plus, X, Info, Users, Calendar, Briefcase, CheckCircle } from 'lucide-react';
 import { Trash } from 'lucide-react';
-
+import InternshipRecommendations from '../dashboardcomponents/InternshipRecommendations';
 export default function InternshipRequirements() {
   const [applicants, setApplicants] = useState([]);
   const [filteredRequirements, setFilteredRequirements] = useState([]);
@@ -788,6 +788,8 @@ export default function InternshipRequirements() {
           </div>
         </div>
       </div>
+
+       {/* <InternshipRecommendations /> */}
 
       {filteredRequirements.length > 0 ? (
         <div className="mt-6 space-y-6">

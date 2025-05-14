@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Search, ChevronDown, Calendar, Users } from "lucide-react";
-
+      import InternshipRecommendations from '../../dashboardcomponents/InternshipRecommendations';
 const FindInternship = () => {
   const [internshipData, setInternshipData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -117,6 +117,8 @@ const FindInternship = () => {
           </div>
         </div>
       </div>
+ <InternshipRecommendations />
+
 
       {/* Display internships or "No internships at this time" message */}
       {internshipData.length === 0 && !loading && (
