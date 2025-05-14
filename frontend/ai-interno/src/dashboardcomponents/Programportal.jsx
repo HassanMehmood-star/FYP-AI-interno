@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Calendar, CheckCircle, Clock, FileText, User, AlertCircle, ChevronRight } from "lucide-react";
+import { Calendar, CheckCircle, Clock, FileText, User, AlertCircle, ChevronRight, Upload, File } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -29,13 +29,28 @@ const formatDate = (dateString) => {
 
 // Utility function to check if task should be displayed
 const shouldDisplayTask = (task) => {
-  if (!task.startDate || !task.startTime) return false;
+  if (!task.startDate || !task.startTime) {
+    console.warn("Task missing startDate or startTime:", task);
+    return false;
+  }
   const currentTime = new Date();
   const [hours, minutes] = task.startTime.split(":").map(Number);
   const taskStart = new Date(task.startDate);
   taskStart.setHours(hours, minutes, 0, 0);
-
   return currentTime >= taskStart;
+};
+
+// Utility function to check if submission is allowed
+const isSubmissionAllowed = (task) => {
+  if (!task.endDate || !task.endTime) {
+    console.warn("Task missing endDate or endTime:", task);
+    return false;
+  }
+  const currentTime = new Date();
+  const [hours, minutes] = task.endTime.split(":").map(Number);
+  const taskEnd = new Date(task.endDate);
+  taskEnd.setHours(hours, minutes, 0, 0);
+  return currentTime <= taskEnd;
 };
 
 // Simplified Card component with animation
@@ -72,8 +87,149 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// File upload section component
+const FileUploadSection = ({ task, onFileUpload }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState(null);
+
+  const canSubmit = isSubmissionAllowed(task) && task.status !== "completed";
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size exceeds 5MB limit");
+        return;
+      }
+      setSelectedFile(file);
+      setUploadStatus(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a file to upload");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Token not found");
+      }
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await axios.post(`/api/tasks/${task._id}/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.data.status === "success") {
+        setUploadStatus({ success: true, fileName: selectedFile.name });
+        onFileUpload(task._id, response.data.fileUrl || selectedFile.name);
+        toast.success("File uploaded successfully");
+      } else {
+        throw new Error(response.data.message || "Failed to upload file");
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      setUploadStatus({ success: false, message: error.response?.data?.message || error.message || "Failed to upload file" });
+      toast.error(error.response?.data?.message || error.message || "Failed to upload file");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="border-t border-[#0A3A3A]/10 pt-4 mt-4"
+    >
+      <div className="flex items-center text-sm text-[#0A3A3A] mb-3">
+        <Upload className="w-4 h-4 mr-1" />
+        <span className="font-medium">Submit Your Work</span>
+      </div>
+      {canSubmit ? (
+        <div className="flex items-center space-x-4">
+          <label className="flex-1">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.png"
+              onChange={handleFileChange}
+              disabled={uploading}
+              className="hidden"
+            />
+            <div className="flex items-center justify-between bg-gray-50 border border-[#0A3A3A]/20 rounded-md p-2 cursor-pointer hover:bg-gray-100 transition-colors">
+              <span className="text-sm text-gray-600 truncate">
+                {selectedFile ? selectedFile.name : "Choose a file (PDF, DOC, JPG, PNG)"}
+              </span>
+              <File className="w-4 h-4 text-[#0A3A3A]" />
+            </div>
+          </label>
+          <button
+            onClick={handleUpload}
+            disabled={uploading || !selectedFile}
+            className={`px-4 py-2 rounded-md text-sm font-medium text-white shadow-sm transition-all ${
+              uploading || !selectedFile
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#0A3A3A] hover:bg-[#0c4747] hover:shadow"
+            }`}
+          >
+            {uploading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin w-4 h-4 mr-2" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+                Uploading...
+              </span>
+            ) : (
+              "Upload"
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700 flex items-center">
+          <AlertCircle className="w-4 h-4 mr-2" />
+          {task.status === "completed"
+            ? "Task is already completed"
+            : "Submission deadline has passed"}
+        </div>
+      )}
+      {uploadStatus && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className={`mt-3 p-2 rounded-md text-sm flex items-center ${
+            uploadStatus.success
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-700 border border-red-200"
+          }`}
+        >
+          {uploadStatus.success ? (
+            <CheckCircle className="w-4 h-4 mr-2" />
+          ) : (
+            <AlertCircle className="w-4 h-4 mr-2" />
+          )}
+          {uploadStatus.success
+            ? `Uploaded: ${uploadStatus.fileName}`
+            : `Upload failed: ${uploadStatus.message}`}
+        </motion.div>
+      )}
+    </motion.div>
+  );
+};
+
 // Task card component
-const TaskCard = ({ task, onMarkComplete }) => {
+const TaskCard = ({ task, onMarkComplete, onFileUpload }) => {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -120,12 +276,13 @@ const TaskCard = ({ task, onMarkComplete }) => {
                     e.stopPropagation();
                     onMarkComplete(task._id);
                   }}
-                  className="text-sm px-4 py-2 bg-[#0A3A3A] text-white rounded-md hover:bg-[#0c4747] transition-colors shadow-sm hover:shadow"
+                  className="text-sm px-4 py-2 bg-[#0A3A3A] text-white rounded-md hover:bg-[#0c4747] transition-colors shadow-sm hover:shadow mb-4"
                 >
                   <CheckCircle className="w-4 h-4 inline mr-1" />
                   Mark as Complete
                 </button>
               )}
+              <FileUploadSection task={task} onFileUpload={onFileUpload} />
             </div>
           </motion.div>
         )}
@@ -249,6 +406,7 @@ const ProgramPortal = () => {
   useEffect(() => {
     const updateDisplayedTasks = () => {
       const tasksToDisplay = allTasks.filter(task => shouldDisplayTask(task));
+      console.log('Displayed tasks:', tasksToDisplay);
       setDisplayedTasks(tasksToDisplay);
     };
 
@@ -269,6 +427,7 @@ const ProgramPortal = () => {
         throw new Error("Token not found");
       }
 
+      console.log(`Marking task as complete: ${taskId}`);
       const response = await axios.patch(
         `/api/tasks/${taskId}/complete`,
         { status: "completed" },
@@ -285,14 +444,27 @@ const ProgramPortal = () => {
             task._id === taskId ? { ...task, status: "completed" } : task
           )
         );
+        console.log(`Task ${taskId} marked as completed`);
         toast.success("Task marked as complete");
       } else {
-        throw new Error("Failed to mark task as complete");
+        throw new Error(response.data.message || "Failed to mark task as complete");
       }
     } catch (error) {
-      console.error("Error marking task as complete:", error);
+      console.error("Error marking task as complete:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       toast.error(error.response?.data?.message || error.message || "Failed to mark task as complete");
     }
+  };
+
+  const handleFileUpload = (taskId, fileUrl) => {
+    setAllTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task._id === taskId ? { ...task, fileUrl } : task
+      )
+    );
   };
 
   return (
@@ -334,7 +506,12 @@ const ProgramPortal = () => {
                 transition={{ staggerChildren: 0.1 }}
               >
                 {displayedTasks.map((task) => (
-                  <TaskCard key={task._id} task={task} onMarkComplete={handleMarkComplete} />
+                  <TaskCard
+                    key={task._id}
+                    task={task}
+                    onMarkComplete={handleMarkComplete}
+                    onFileUpload={handleFileUpload}
+                  />
                 ))}
               </motion.div>
             </div>

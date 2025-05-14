@@ -691,6 +691,12 @@ const taskRouter = require('./routes/Program');
   const programTaskRoutes = require('./routes/programtask');
   app.use('/api', programTaskRoutes);
 
+const taskCompleteRoute = require('./routes/taskcompleteroute');
+app.use('/api/tasks', taskCompleteRoute);
+
+const uploadTaskRoute = require('./routes/uploadtask');
+app.use('/api/tasks', uploadTaskRoute);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
