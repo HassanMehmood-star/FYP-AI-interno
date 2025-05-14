@@ -192,15 +192,15 @@ const Sidebar = () => {
           <span>InternChat</span>
         </a>
       </li>
-      <li>
+      {/* <li>
         <a
           href="/dashboard/mentorchat"
           className=" py-1 px-3 rounded-md hover:bg-gray-800 hover:text-white transition-all duration-200 text-xs font-light flex items-center space-x-2"
         >
-          <FontAwesomeIcon icon={faChalkboardTeacher} className="w-4 h-4" /> {/* MentorChat Icon */}
+          <FontAwesomeIcon icon={faChalkboardTeacher} className="w-4 h-4" /> 
           <span>MentorChat</span>
         </a>
-      </li>
+      </li> */}
     </ul>
   </div>
 </li>

@@ -4,6 +4,7 @@ const HiredCandidate = require('../models/HiredCandidate');
 const ChatGroup = require('../models/ChatGroup');
 const Message = require('../models/Message');
 const authMiddleware = require('../middlewares/authMiddlewares');
+const Internship = require("../models/InternshipProgram")
 
 router.get('/chat-groups/:internshipId', authMiddleware, async (req, res) => {
   try {
@@ -72,19 +73,28 @@ router.get("/chat-groups", authMiddleware, async (req, res) => {
         name: hc.candidate.name,
       }))
 
+      // Fetch Internship title
+      const internship = await Internship.findById(internshipId).select("title")
+      const groupName = internship ? internship.title : `Internship Group ${internshipId.slice(-6)}`
+      console.log(
+        `GET /api/chat-groups - Internship ${internshipId} title:`,
+        internship ? internship.title : "Not found, using fallback"
+      )
+
       // Check if a ChatGroup exists
       let chatGroup = await ChatGroup.findOne({ internshipId })
       if (!chatGroup) {
         // Create new ChatGroup
         chatGroup = new ChatGroup({
           internshipId,
-          name: `Internship Group ${internshipId.slice(-6)}`,
+          name: groupName,
           members,
         })
         await chatGroup.save()
         console.log(`GET /api/chat-groups - Created ChatGroup for internship ${internshipId}:`, chatGroup)
       } else {
         // Update existing ChatGroup
+        chatGroup.name = groupName
         chatGroup.members = members
         await chatGroup.save()
         console.log(`GET /api/chat-groups - Updated ChatGroup for internship ${internshipId}:`, chatGroup)

@@ -302,7 +302,7 @@ const Internchat = () => {
       {isMobile && (
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
-          className="fixed top-4 left-4 z-50 p-2 bg-purple-600 rounded-full text-white shadow-lg"
+          className="fixed top-4 left-4 z-50 p-2 bg-black rounded-full text-white shadow-lg"
         >
           {showMobileMenu ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -320,7 +320,7 @@ const Internchat = () => {
           >
             <div className="flex flex-col h-full">
               <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-purple-600">InternChat</h1>
+                <h1 className="text-2xl font-bold text-black">InternChat</h1>
                 <button onClick={() => setShowMobileMenu(false)}>
                   <X size={24} />
                 </button>
@@ -331,7 +331,7 @@ const Internchat = () => {
                   <input
                     type="text"
                     placeholder="Search chats..."
-                    className="w-full p-3 pl-10 rounded-lg bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-3 pl-10 rounded-lg bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                   />
@@ -347,7 +347,7 @@ const Internchat = () => {
                       key={group.id}
                       className={`p-3 rounded-lg cursor-pointer flex items-center justify-between ${
                         activeGroup === group.id
-                          ? "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300"
+                          ? "bg-purple-100 dark:bg-teal-900 text-teal-600 dark:text-purple-300"
                           : "hover:bg-gray-100 dark:hover:bg-gray-800"
                       }`}
                       onClick={() => {
@@ -360,7 +360,7 @@ const Internchat = () => {
                         <span>{group.name}</span>
                       </div>
                       {group.unread > 0 && (
-                        <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded-full">
                           {group.unread}
                         </span>
                       )}
@@ -416,7 +416,7 @@ const Internchat = () => {
             } w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col`}
           >
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <h1 className="text-2xl font-bold text-purple-600 flex items-center">
+              <h1 className="text-2xl font-bold text-teal-600 flex items-center">
                 <MessageSquare className="mr-2" size={24} />
                 InternChat
               </h1>
@@ -427,7 +427,7 @@ const Internchat = () => {
                 <input
                   type="text"
                   placeholder="Search chats..."
-                  className="w-full p-3 pl-10 rounded-lg bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full p-3 pl-10 rounded-lg bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                 />
@@ -438,7 +438,7 @@ const Internchat = () => {
             <div className="flex-1 overflow-y-auto p-4">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400">CHANNELS</h2>
-                <button className="text-gray-500 hover:text-purple-600">
+                <button className="text-gray-500 hover:text-teal-600">
                   <Plus size={18} />
                 </button>
               </div>
@@ -449,7 +449,7 @@ const Internchat = () => {
                     key={group.id}
                     className={`p-3 rounded-lg cursor-pointer flex items-center justify-between ${
                       activeGroup === group.id
-                        ? "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300"
+                        ? "bg-purple-100 dark:bg-teal-900 text-teal-600 dark:text-purple-300"
                         : "hover:bg-gray-100 dark:hover:bg-gray-800"
                     }`}
                     onClick={() => setActiveGroup(group.id)}
@@ -461,7 +461,7 @@ const Internchat = () => {
                       <span>{group.name}</span>
                     </div>
                     {group.unread > 0 && (
-                      <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded-full">
                         {group.unread}
                       </span>
                     )}
@@ -472,11 +472,11 @@ const Internchat = () => {
 
             <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                <img
+                {/* <img
                   src={currentUser?.avatar || "/placeholder.svg"}
                   alt={currentUser?.name}
                   className="w-10 h-10 rounded-full"
-                />
+                /> */}
                 <div className="ml-3">
                   <div className="font-medium">{currentUser?.name}</div>
                   <div className="text-xs text-green-500">Online</div>
@@ -495,7 +495,7 @@ const Internchat = () => {
             {!isMobile && (
               <button
                 onClick={() => setShowSidebar(!showSidebar)}
-                className="mr-4 text-gray-500 hover:text-purple-600"
+                className="mr-4 text-gray-500 hover:text-teal-600"
               >
                 <Menu size={20} />
               </button>
@@ -514,16 +514,16 @@ const Internchat = () => {
               onClick={() => setShowUserList(!showUserList)}
               className={`p-2 rounded-full ${
                 showUserList
-                  ? "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300"
-                  : "text-gray-500 hover:text-purple-600"
+                  ? "bg-purple-100 text-teal-600 dark:bg-teal-900 dark:text-teal-300"
+                  : "text-gray-500 hover:text-teal-600"
               }`}
             >
               <Users size={20} />
             </button>
-            <button className="ml-2 p-2 rounded-full text-gray-500 hover:text-purple-600">
+            <button className="ml-2 p-2 rounded-full text-gray-500 hover:text-teal-600">
               <Bell size={20} />
             </button>
-            <button className="ml-2 p-2 rounded-full text-gray-500 hover:text-purple-600">
+            <button className="ml-2 p-2 rounded-full text-gray-500 hover:text-teal-600">
               <Search size={20} />
             </button>
           </div>
@@ -556,11 +556,11 @@ const Internchat = () => {
                       {!isCurrentUser && (
                         <div className="flex-shrink-0 mr-3">
                           <div className="relative">
-                            <img
+                            {/* <img
                               src={message.sender.avatar}
                               alt={message.sender.name}
                               className="w-10 h-10 rounded-full"
-                            />
+                            /> */}
                             <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white bg-green-500"></span>
                           </div>
                         </div>
@@ -577,7 +577,7 @@ const Internchat = () => {
                           <div
                             className={`px-4 py-3 rounded-2xl ${
                               isCurrentUser
-                                ? "bg-purple-600 text-white rounded-tr-none"
+                                ? "bg-teal-600 text-white rounded-tr-none"
                                 : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none shadow-sm"
                             }`}
                           >
@@ -669,7 +669,7 @@ const Internchat = () => {
             <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center">
                 <button
-                  className="p-2 text-gray-500 hover:text-purple-600"
+                  className="p-2 text-gray-500 hover:text-teal-600"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Paperclip size={20} />
@@ -680,13 +680,13 @@ const Internchat = () => {
                   <input
                     type="text"
                     placeholder="Type your message..."
-                    className="w-full p-3 rounded-full bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-3 rounded-full bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
                     value={inputMessage}
                     onChange={e => setInputMessage(e.target.value)}
                     onKeyPress={e => e.key === "Enter" && handleSendMessage()}
                   />
                   <button
-                    className="absolute right-3 top-3 text-gray-500 hover:text-purple-600"
+                    className="absolute right-3 top-3 text-gray-500 hover:text-teal-600"
                     onClick={() => setShowEmojiPicker("input")}
                   >
                     <Smile size={20} />
@@ -715,7 +715,7 @@ const Internchat = () => {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  className="p-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  className="p-3 bg-teal-600 text-white rounded-full hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                   onClick={handleSendMessage}
                 >
                   <Send size={20} />
@@ -741,7 +741,7 @@ const Internchat = () => {
                     <input
                       type="text"
                       placeholder="Search members..."
-                      className="w-full p-2 pl-8 rounded-lg bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                      className="w-full p-2 pl-8 rounded-lg bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
                     />
                     <Search className="absolute left-2 top-2.5 text-gray-400" size={16} />
                   </div>
@@ -756,7 +756,7 @@ const Internchat = () => {
                       {activeUsers.map(user => (
                         <div key={user.userId} className="flex items-center">
                           <div className="relative">
-                            <img src="/placeholder.svg" alt={user.name} className="w-8 h-8 rounded-full" />
+                            {/* <img src="/placeholder.svg" alt={user.name} className="w-8 h-8 rounded-full" /> */}
                             <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full border-2 border-white bg-green-500"></span>
                           </div>
                           <div className="ml-3">
